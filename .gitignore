@@ -31,3 +31,6 @@ dataset/enrollment/gallery/
 
 
 
+models/*.pth
+models/*.dat
+models/*.pt
