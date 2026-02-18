@@ -1,0 +1,132 @@
+"""
+Django settings for Face Recognition Attendance System.
+"""
+
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # C:/Final_Project
+
+SECRET_KEY = 'django-insecure-change-this-in-production-xyz123'
+
+DEBUG = True
+
+ALLOWED_HOSTS = ['*']
+
+# ==============================================================
+# INSTALLED APPS
+# ==============================================================
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    # Third party
+    'crispy_forms',
+    'crispy_bootstrap5',
+
+    # Our apps
+    'accounts',
+    'academics',
+    'attendance',
+    'enrollment',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'attendance_project.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'attendance_project.wsgi.application'
+
+# ==============================================================
+# DATABASE — Same PostgreSQL you already set up
+# ==============================================================
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'attendance_system',
+        'USER': 'attendance_admin',
+        'PASSWORD': 'root',     # ← CHANGE THIS
+        'HOST': 'localhost',
+        'PORT': '5433',
+    }
+}
+
+# ==============================================================
+# AUTH
+# ==============================================================
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+]
+
+# ==============================================================
+# STATIC & MEDIA
+# ==============================================================
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# ==============================================================
+# CRISPY FORMS
+# ==============================================================
+CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
+CRISPY_TEMPLATE_PACK = 'bootstrap5'
+
+# ==============================================================
+# FACE RECOGNITION SETTINGS
+# ==============================================================
+ENROLLMENT_DATA_DIR = PROJECT_ROOT / 'dataset' / 'enrollment'
+FACES_DIR = ENROLLMENT_DATA_DIR / 'faces_aligned'
+GALLERY_DIR = ENROLLMENT_DATA_DIR / 'gallery'
+
+RECOGNITION_THRESHOLD = 0.45
+INSIGHTFACE_MODEL = 'buffalo_l'
+DET_SIZE = (640, 640)
+DET_THRESH = 0.5
+
+# ==============================================================
+# INTERNATIONALIZATION
+# ==============================================================
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'Asia/Kathmandu'
+USE_I18N = True
+USE_TZ = True
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -1,0 +1,757 @@
+/* ==============================================================
+   ATTENDANCE SYSTEM — Design System
+   Professional dark sidebar + light content layout
+   ============================================================== */
+
+:root {
+    /* Colors */
+    --primary: #4361ee;
+    --primary-hover: #3a56d4;
+    --primary-light: #eef0fb;
+    --secondary: #6c757d;
+    --success: #2ec4b6;
+    --success-light: #e8f8f5;
+    --warning: #ff9f1c;
+    --warning-light: #fff8ec;
+    --danger: #e63946;
+    --danger-light: #fde8ea;
+    --info: #4cc9f0;
+    --info-light: #eaf8fd;
+
+    /* Sidebar */
+    --sidebar-bg: #1a1d23;
+    --sidebar-width: 260px;
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active: rgba(67, 97, 238, 0.15);
+    --sidebar-text: #8a919e;
+    --sidebar-text-active: #ffffff;
+    --sidebar-border: rgba(255, 255, 255, 0.06);
+
+    /* Content */
+    --body-bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --card-border: #e9ecef;
+    --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+    /* Text */
+    --text-primary: #1a1d23;
+    --text-secondary: #6c757d;
+    --text-muted: #adb5bd;
+
+    /* Radius */
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 14px;
+}
+
+/* ==============================================================
+   RESET & BASE
+   ============================================================== */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--body-bg);
+    color: var(--text-primary);
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--primary-hover);
+}
+
+/* ==============================================================
+   SIDEBAR
+   ============================================================== */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    z-index: 1040;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-brand {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--sidebar-border);
+}
+
+.sidebar-brand h5 {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sidebar-brand small {
+    color: var(--sidebar-text);
+    font-size: 0.72rem;
+    display: block;
+    margin-top: 2px;
+}
+
+.sidebar-user {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--sidebar-border);
+}
+
+.sidebar-user .user-name {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.sidebar-user .user-meta {
+    margin-top: 0.35rem;
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+/* Sidebar Section Labels */
+.sidebar-section {
+    padding: 1rem 1.5rem 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--sidebar-text);
+    opacity: 0.6;
+}
+
+/* Sidebar Nav Links */
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex: 1;
+}
+
+.sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1.5rem;
+    color: var(--sidebar-text);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-nav .nav-link i {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+    opacity: 0.8;
+}
+
+.sidebar-nav .nav-link:hover {
+    color: var(--sidebar-text-active);
+    background: var(--sidebar-hover);
+}
+
+.sidebar-nav .nav-link.active {
+    color: var(--primary);
+    background: var(--sidebar-active);
+    border-left-color: var(--primary);
+}
+
+.sidebar-nav .nav-link.active i {
+    opacity: 1;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--sidebar-border);
+    margin-top: auto;
+}
+
+.sidebar-footer .btn {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+}
+
+/* ==============================================================
+   MAIN CONTENT
+   ============================================================== */
+.main-content {
+    margin-left: var(--sidebar-width);
+    padding: 1.75rem 2rem;
+    min-height: 100vh;
+}
+
+/* ==============================================================
+   PAGE HEADER
+   ============================================================== */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.page-header h4 {
+    font-weight: 700;
+    font-size: 1.35rem;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.page-header .breadcrumb {
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+/* ==============================================================
+   STAT CARDS
+   ============================================================== */
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-1px);
+}
+
+.stat-card .card-body {
+    padding: 1.25rem;
+}
+
+.stat-card .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+}
+
+.stat-card .stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.stat-card .stat-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.stat-card .stat-change {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+/* Stat Colors */
+.stat-primary .stat-icon {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.stat-primary .stat-value {
+    color: var(--primary);
+}
+
+.stat-success .stat-icon {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.stat-success .stat-value {
+    color: var(--success);
+}
+
+.stat-warning .stat-icon {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+.stat-warning .stat-value {
+    color: var(--warning);
+}
+
+.stat-danger .stat-icon {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.stat-danger .stat-value {
+    color: var(--danger);
+}
+
+.stat-info .stat-icon {
+    background: var(--info-light);
+    color: var(--info);
+}
+
+.stat-info .stat-value {
+    color: var(--info);
+}
+
+/* ==============================================================
+   CARDS (GENERAL)
+   ============================================================== */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+}
+
+.card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--card-border);
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h6 {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+/* ==============================================================
+   TABLES
+   ============================================================== */
+.table {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.table thead th {
+    background: #f8f9fa;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    border-bottom-width: 1px;
+    padding: 0.85rem 1rem;
+    white-space: nowrap;
+}
+
+.table tbody td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+    border-color: #f0f2f5;
+}
+
+.table-hover tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* ==============================================================
+   BADGES
+   ============================================================== */
+.badge {
+    font-weight: 600;
+    font-size: 0.7rem;
+    padding: 0.35em 0.65em;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+}
+
+.badge-role {
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 0.8px;
+}
+
+.badge-admin {
+    background: var(--danger);
+    color: #fff;
+}
+
+.badge-hod {
+    background: var(--warning);
+    color: #1a1d23;
+}
+
+.badge-teacher {
+    background: var(--primary);
+    color: #fff;
+}
+
+.badge-student {
+    background: var(--success);
+    color: #fff;
+}
+
+.badge-present {
+    background: var(--success-light);
+    color: #0d9488;
+}
+
+.badge-absent {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.badge-late {
+    background: var(--warning-light);
+    color: #b45309;
+}
+
+.badge-active {
+    background: var(--success);
+    color: #fff;
+}
+
+.badge-completed {
+    background: var(--secondary);
+    color: #fff;
+}
+
+.badge-cancelled {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* ==============================================================
+   BUTTONS
+   ============================================================== */
+.btn {
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.5rem 1.15rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+}
+
+.btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
+}
+
+.btn-success {
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.btn-danger {
+    background: var(--danger);
+    border-color: var(--danger);
+}
+
+.btn-outline-secondary {
+    color: var(--text-secondary);
+    border-color: #dee2e6;
+}
+
+.btn-outline-secondary:hover {
+    background: #f8f9fa;
+    color: var(--text-primary);
+    border-color: #ced4da;
+}
+
+.btn-sm {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.85rem;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* ==============================================================
+   FORMS
+   ============================================================== */
+.form-control,
+.form-select {
+    border-radius: var(--radius-sm);
+    border-color: #dee2e6;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.85rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.12);
+}
+
+.form-label {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.35rem;
+}
+
+/* ==============================================================
+   ALERTS
+   ============================================================== */
+.alert {
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    border: none;
+    padding: 0.85rem 1.15rem;
+}
+
+.alert-success {
+    background: var(--success-light);
+    color: #0d6e64;
+}
+
+.alert-warning {
+    background: var(--warning-light);
+    color: #92400e;
+}
+
+.alert-danger {
+    background: var(--danger-light);
+    color: #991b1b;
+}
+
+.alert-info {
+    background: var(--info-light);
+    color: #0e7490;
+}
+
+/* ==============================================================
+   PROGRESS BAR
+   ============================================================== */
+.progress {
+    height: 8px;
+    border-radius: 4px;
+    background: #e9ecef;
+}
+
+.progress-bar {
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+/* ==============================================================
+   ATTENDANCE PERCENTAGE COLORS
+   ============================================================== */
+.pct-good {
+    color: var(--success) !important;
+}
+
+.pct-avg {
+    color: var(--warning) !important;
+}
+
+.pct-low {
+    color: var(--danger) !important;
+}
+
+.progress-good {
+    background-color: var(--success) !important;
+}
+
+.progress-avg {
+    background-color: var(--warning) !important;
+}
+
+.progress-low {
+    background-color: var(--danger) !important;
+}
+
+/* ==============================================================
+   SUBJECT CARD (Teacher view)
+   ============================================================== */
+.subject-card {
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    background: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    transition: all 0.2s ease;
+}
+
+.subject-card:hover {
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--primary);
+}
+
+.subject-card .subject-header {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.subject-card .subject-name {
+    font-weight: 700;
+    font-size: 1rem;
+    margin: 0 0 0.35rem 0;
+}
+
+.subject-card .subject-body {
+    padding: 1.25rem;
+}
+
+.subject-card .subject-actions {
+    padding: 1rem 1.25rem;
+    background: #f8f9fa;
+    border-top: 1px solid var(--card-border);
+    border-radius: 0 0 var(--radius) var(--radius);
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* ==============================================================
+   SESSION STATUS INDICATOR
+   ============================================================== */
+.session-active-pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse 1.5s infinite;
+    margin-right: 0.4rem;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(46, 196, 182, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 8px rgba(46, 196, 182, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(46, 196, 182, 0);
+    }
+}
+
+/* ==============================================================
+   EMPTY STATE
+   ============================================================== */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+.empty-state h6 {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    font-size: 0.85rem;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* ==============================================================
+   LOGIN PAGE
+   ============================================================== */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a1d23 0%, #2d3139 100%);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.login-header {
+    background: linear-gradient(135deg, var(--primary) 0%, #3a56d4 100%);
+    color: #fff;
+    padding: 2rem;
+    text-align: center;
+}
+
+.login-header h3 {
+    font-weight: 800;
+    margin: 0.75rem 0 0.25rem;
+}
+
+.login-header p {
+    opacity: 0.85;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.login-body {
+    padding: 2rem;
+}
+
+.login-body .btn-primary {
+    padding: 0.7rem;
+    font-size: 0.95rem;
+}
+
+/* ==============================================================
+   RESPONSIVE
+   ============================================================== */
+@media (max-width: 992px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+}

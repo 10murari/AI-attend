@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — AttendAI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4>{{ title }}</h4>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div class="text-danger small mt-1">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-icon">
+                            <i class="bi bi-check-lg"></i> {% if is_edit %}Update{% else %}Create{% endif %} Student
+                        </button>
+                        <a href="{% url 'student_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if not is_edit %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-info-circle"></i> Notes</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0" style="font-size: 0.85rem;">
+                    <li>Username will be automatically set to the <strong>Roll Number</strong></li>
+                    <li>If password is left blank, it defaults to the roll number</li>
+                    <li>Face enrollment is done separately via the Enrollment page</li>
+                    <li>Student will be able to login and view their attendance</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

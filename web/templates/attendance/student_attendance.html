@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}My Attendance — AttendAI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-bar-chart-fill"></i> My Attendance</h4>
+</div>
+
+<!-- Overall Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div
+            class="stat-card {% if overall_percentage >= 75 %}stat-success{% elif overall_percentage >= 60 %}stat-warning{% else %}stat-danger{% endif %}">
+            <div class="card-body text-center">
+                <div class="stat-label">Overall Attendance</div>
+                <div class="stat-value" style="font-size: 2.5rem;">{{ overall_percentage }}%</div>
+                <div class="stat-change">{{ total_present }} / {{ total_sessions }} sessions attended</div>
+                <div class="progress mt-2" style="height: 6px;">
+                    <div class="progress-bar {% if overall_percentage >= 75 %}progress-good{% elif overall_percentage >= 60 %}progress-avg{% else %}progress-low{% endif %}"
+                        style="width: {{ overall_percentage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card stat-primary">
+            <div class="card-body text-center">
+                <div class="stat-label">Total Subjects</div>
+                <div class="stat-value">{{ subject_stats|length }}</div>
+                <div class="stat-change">Semester {{ request.user.semester }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card {% if overall_percentage >= 75 %}stat-success{% else %}stat-danger{% endif %}">
+            <div class="card-body text-center">
+                <div class="stat-label">Status</div>
+                <div class="stat-value" style="font-size: 1.5rem;">
+                    {% if overall_percentage >= 75 %}
+                    <i class="bi bi-shield-check"></i> Safe
+                    {% elif overall_percentage >= 60 %}
+                    <i class="bi bi-exclamation-triangle"></i> Warning
+                    {% else %}
+                    <i class="bi bi-shield-x"></i> Critical
+                    {% endif %}
+                </div>
+                <div class="stat-change">Minimum required: 75%</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subject-wise -->
+<div class="card">
+    <div class="card-header">
+        <h6><i class="bi bi-book"></i> Subject-wise Attendance</h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Teacher</th>
+                    <th class="text-center">Present</th>
+                    <th class="text-center">Late</th>
+                    <th class="text-center">Absent</th>
+                    <th class="text-center">Total</th>
+                    <th style="width: 200px;">Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in subject_stats %}
+                <tr>
+                    <td>
+                        <strong>{{ stat.subject.name }}</strong><br>
+                        <small class="text-muted">{{ stat.subject.code }}</small>
+                    </td>
+                    <td class="text-muted">{{ stat.teacher }}</td>
+                    <td class="text-center">
+                        <span class="fw-bold text-success">{{ stat.present }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold text-warning">{{ stat.late }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold text-danger">{{ stat.absent }}</span>
+                    </td>
+                    <td class="text-center">{{ stat.total }}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" style="height: 8px;">
+                                <div class="progress-bar
+                                    {% if stat.percentage >= 75 %}progress-good
+                                    {% elif stat.percentage >= 60 %}progress-avg
+                                    {% else %}progress-low{% endif %}" style="width: {{ stat.percentage }}%">
+                                </div>
+                            </div>
+                            <strong class="
+                                {% if stat.percentage >= 75 %}pct-good
+                                {% elif stat.percentage >= 60 %}pct-avg
+                                {% else %}pct-low{% endif %}" style="min-width: 45px; text-align: right;">
+                                {{ stat.percentage }}%
+                            </strong>
+                        </div>
+                        {% if stat.percentage < 75 and stat.total > 0 %}
+                            <small class="text-danger"><i class="bi bi-exclamation-triangle"></i> Below 75%</small>
+                            {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="bi bi-bar-chart"></i>
+                            <h6>No attendance records yet</h6>
+                            <p>Attendance will appear here once your teachers start sessions.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Start Session — {{ subject.code }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-play-circle"></i> Start Attendance Session</h4>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6>Confirm Session Details</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-4">
+                    <tr>
+                        <td class="text-muted" style="width: 140px;">Subject</td>
+                        <td><strong>{{ subject.name }}</strong> ({{ subject.code }})</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Department</td>
+                        <td>{{ subject.department.name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Semester</td>
+                        <td>Semester {{ subject.semester }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Students</td>
+                        <td><strong>{{ student_count }}</strong> enrolled students</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Date</td>
+                        <td>{{ "now"|date:"l, d M Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Time</td>
+                        <td>{{ "now"|time:"H:i" }}</td>
+                    </tr>
+                </table>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Starting a session will create attendance records. You can mark students
+                    manually or use the face recognition system. When you end the session,
+                    all unmarked students will be automatically marked as <strong>ABSENT</strong>.
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success btn-icon">
+                            <i class="bi bi-play-fill"></i> Start Session Now
+                        </button>
+                        <a href="{% url 'teacher_subjects' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

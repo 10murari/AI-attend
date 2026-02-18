@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Session History — AttendAI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-clock-history"></i> Session History</h4>
+</div>
+
+<!-- Filter -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-3 align-items-center">
+            <select name="subject" class="form-select form-select-sm" style="max-width: 300px;"
+                onchange="this.form.submit()">
+                <option value="">All Subjects</option>
+                {% for a in assignments %}
+                <option value="{{ a.subject.id }}"
+                 {% if selected_subject == a.subject.id|stringformat:"d" %}selected{% endif %}>
+                    {{ a.subject.code }} — {{ a.subject.name }}
+                </option>
+                {% endfor %}
+            </select>
+            {% if selected_subject %}
+            <a href="{% url 'session_history' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Subject</th>
+                    <th>Department</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th class="text-center">Present</th>
+                    <th class="text-center">Late</th>
+                    <th class="text-center">Absent</th>
+                    <th>Rate</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in sessions %}
+                <tr>
+                    <td>{{ session.date|date:"d M Y" }}</td>
+                    <td>
+                        <strong>{{ session.subject.name }}</strong><br>
+                        <small class="text-muted">{{ session.subject.code }}</small>
+                    </td>
+                    <td><span class="badge bg-dark">{{ session.department.code }}</span></td>
+                    <td>
+                        {{ session.start_time|time:"H:i" }}
+                        {% if session.end_time %}— {{ session.end_time|time:"H:i" }}{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ session.status|lower }}">
+                            {% if session.status == 'ACTIVE' %}<span class="session-active-pulse"></span>{% endif %}
+                            {{ session.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="text-center text-success fw-bold">{{ session.total_present }}</td>
+                    <td class="text-center text-warning fw-bold">{{ session.total_late }}</td>
+                    <td class="text-center text-danger fw-bold">{{ session.total_absent }}</td>
+                    <td>
+                        {% if session.total_students > 0 %}
+                        <strong
+                            class="{% if session.attendance_rate >= 75 %}pct-good{% elif session.attendance_rate >= 60 %}pct-avg{% else %}pct-low{% endif %}">
+                            {{ session.attendance_rate }}%
+                        </strong>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'session_detail' session.id %}" class="btn btn-outline-secondary btn-sm"
+                                title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'export_session_csv' session.id %}" class="btn btn-outline-secondary btn-sm"
+                                title="Export CSV">
+                                <i class="bi bi-download"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10">
+                        <div class="empty-state">
+                            <i class="bi bi-clock-history"></i>
+                            <h6>No sessions yet</h6>
+                            <p>Start an attendance session from My Subjects.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

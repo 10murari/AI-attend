@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Confirm Deactivate — AttendAI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-exclamation-triangle text-warning"></i> Confirm Deactivation</h4>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Are you sure you want to deactivate this {{ obj_type|lower }}?
+                </div>
+                <table class="table table-borderless mb-4">
+                    <tr>
+                        <td class="text-muted" style="width: 100px;">Type</td>
+                        <td><strong>{{ obj_type }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Name</td>
+                        <td><strong>{{ obj_name }}</strong></td>
+                    </tr>
+                </table>
+                <p class="text-muted small">
+                    <i class="bi bi-info-circle"></i>
+                    This will hide the {{ obj_type|lower }} from active lists but will <strong>not</strong> delete any
+                    data.
+                    It can be reactivated from Django Admin.
+                </p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger btn-icon">
+                            <i class="bi bi-x-circle"></i> Deactivate
+                        </button>
+                        <a href="{% url cancel_url %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

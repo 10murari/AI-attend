@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Teachers — AttendAI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-person-badge"></i> Teachers</h4>
+    <a href="{% url 'teacher_create' %}" class="btn btn-primary btn-sm btn-icon">
+        <i class="bi bi-plus-lg"></i> Add Teacher
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-3 align-items-center">
+            <select name="department" class="form-select form-select-sm" style="max-width: 200px;"
+                onchange="this.form.submit()">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"d" %}selected{% endif %}>{{
+                    dept.code }}</option>
+                {% endfor %}
+            </select>
+            {% if selected_dept %}
+            <a href="{% url 'teacher_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Department</th>
+                    <th>Role</th>
+                    <th>Subjects</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for teacher in teachers %}
+                <tr>
+                    <td><strong>{{ teacher.full_name }}</strong></td>
+                    <td><code>{{ teacher.username }}</code></td>
+                    <td>
+                        {% if teacher.department %}
+                        <span class="badge bg-dark">{{ teacher.department.code }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ teacher.role }} badge-role">{{ teacher.get_role_display }}</span>
+                    </td>
+                    <td>
+                        {% for a in teacher.subject_assignments.all %}
+                        <span class="badge" style="background: var(--primary-light); color: var(--primary);">{{
+                            a.subject.code }}</span>
+                        {% empty %}
+                        <span class="text-muted small">None</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'teacher_edit' teacher.pk %}" class="btn btn-outline-secondary btn-sm"
+                                title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'teacher_promote_hod' teacher.pk %}" class="btn btn-outline-warning btn-sm"
+                                title="HOD Management">
+                                <i class="bi bi-shield-check"></i>
+                            </a>
+                            <a href="{% url 'teacher_reset_password' teacher.pk %}" class="btn btn-outline-info btn-sm"
+                                title="Reset Password">
+                                <i class="bi bi-key"></i>
+                            </a>
+                            <a href="{% url 'teacher_delete' teacher.pk %}" class="btn btn-outline-danger btn-sm"
+                                title="Deactivate">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <i class="bi bi-person-badge"></i>
+                            <h6>No teachers yet</h6>
+                            <p>Add teachers and assign them to subjects.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+
+# Django
+db.sqlite3
+*.log
+media/
+
+# VS Code
+.vscode/
+
+# Environment variables
+.env
+
+dataset/enrollment/faces_augmented/
+dataset/enrollment/faces_augmented_filtered/
+dataset/enrollment/augmentation_previews/
+dataset/enrollment/faces_augmented_safe/
+dataset/enrollment/faces_augmented_arcface/
+dataset/enrollment/faces_retina/
+dataset/enrollment/phone_videos/
+dataset/enrollment/faces_aligned/
+dataset/cctv_footage/
+dataset/enrollment/embeddings/
+dataset/enrollment/gallery/
+
+
+
+
