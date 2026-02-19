@@ -1,0 +1,180 @@
+{# Include this section in session_detail.html after the stat cards, before the student table #}
+{# Only shows when session is ACTIVE #}
+
+{% if session.status == 'ACTIVE' %}
+<div class="card mb-4" id="cameraCard">
+    <div class="card-header">
+        <h6><i class="bi bi-camera-video-fill"></i> Live Face Recognition</h6>
+        <div class="d-flex gap-2 align-items-center">
+            <span id="camStatus" class="badge bg-secondary">Camera Off</span>
+            <span id="recognitionCount" class="badge bg-dark" style="display:none;">
+                Recognized: <span id="recCount">0</span>
+            </span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <div style="position:relative; background:#000; border-radius: var(--radius);
+                    overflow:hidden; aspect-ratio: 16/9;">
+                    <video id="attendanceVideo" autoplay playsinline muted
+                        style="width:100%; height:100%; object-fit:cover;"></video>
+                    <canvas id="attendanceCanvas" style="display:none;"></canvas>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div id="recognitionLog" style="max-height: 300px; overflow-y: auto; font-size: 0.85rem;">
+                    <p class="text-muted">Recognition results will appear here...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button id="btnStartCam" class="btn btn-success btn-sm btn-icon" onclick="startAttendanceCam()">
+                <i class="bi bi-camera-video"></i> Start Camera
+            </button>
+            <button id="btnStopCam" class="btn btn-outline-secondary btn-sm btn-icon" onclick="stopAttendanceCam()"
+                disabled>
+                <i class="bi bi-stop-circle"></i> Stop Camera
+            </button>
+            <div class="form-check form-switch ms-3 d-flex align-items-center">
+                <input class="form-check-input" type="checkbox" id="autoScan" checked>
+                <label class="form-check-label ms-2 small" for="autoScan">Auto-scan (1.5s interval)</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let attStream = null;
+    let scanInterval = null;
+    const attVideo = document.getElementById('attendanceVideo');
+    const attCanvas = document.getElementById('attendanceCanvas');
+    const attCtx = attCanvas.getContext('2d');
+    const camStatus = document.getElementById('camStatus');
+    const recLog = document.getElementById('recognitionLog');
+    const recCountSpan = document.getElementById('recCount');
+    const recCountBadge = document.getElementById('recognitionCount');
+
+    async function startAttendanceCam() {
+        try {
+            attStream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: 'environment' }
+            });
+            attVideo.srcObject = attStream;
+            camStatus.textContent = 'Camera On';
+            camStatus.className = 'badge badge-active';
+            document.getElementById('btnStartCam').disabled = true;
+            document.getElementById('btnStopCam').disabled = false;
+            recLog.innerHTML = '<p class="text-success"><i class="bi bi-check-circle"></i> Camera started. Scanning...</p>';
+
+            // Start auto-scanning
+            if (document.getElementById('autoScan').checked) {
+                startAutoScan();
+            }
+        } catch (err) {
+            alert('Camera error: ' + err.message);
+        }
+    }
+
+    function stopAttendanceCam() {
+        if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+        if (attStream) { attStream.getTracks().forEach(t => t.stop()); attStream = null; }
+        attVideo.srcObject = null;
+        camStatus.textContent = 'Camera Off';
+        camStatus.className = 'badge bg-secondary';
+        document.getElementById('btnStartCam').disabled = false;
+        document.getElementById('btnStopCam').disabled = true;
+    }
+
+    function startAutoScan() {
+        if (scanInterval) clearInterval(scanInterval);
+        scanInterval = setInterval(scanFrame, 1500);
+    }
+
+    document.getElementById('autoScan').addEventListener('change', function () {
+        if (this.checked && attStream) {
+            startAutoScan();
+        } else if (scanInterval) {
+            clearInterval(scanInterval);
+            scanInterval = null;
+        }
+    });
+
+    async function scanFrame() {
+        if (!attStream) return;
+
+        attCanvas.width = attVideo.videoWidth;
+        attCanvas.height = attVideo.videoHeight;
+        attCtx.drawImage(attVideo, 0, 0);
+        const dataUrl = attCanvas.toDataURL('image/jpeg', 0.8);
+
+        try {
+            const res = await fetch(`/attendance/api/recognize/{{ session.id }}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({ frame: dataUrl }),
+            });
+
+            const data = await res.json();
+
+            if (data.recognized && data.recognized.length > 0) {
+                for (const r of data.recognized) {
+                    const time = new Date().toLocaleTimeString();
+                    if (r.status === 'MARKED') {
+                        recLog.innerHTML = `
+                        <div class="alert alert-success py-1 px-2 mb-1 small">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <strong>${r.roll_no}</strong> ${r.name}
+                            <span class="float-end text-muted">${time} | ${r.similarity}</span>
+                        </div>` + recLog.innerHTML;
+
+                        // Update the student row in the table below
+                        updateStudentRow(r.roll_no, 'PRESENT', time, r.similarity);
+                    } else if (r.status === 'ALREADY_MARKED') {
+                        // Don't spam the log for already-marked students
+                    }
+                }
+            }
+
+            if (data.total_marked !== undefined) {
+                recCountSpan.textContent = data.total_marked;
+                recCountBadge.style.display = '';
+
+                // Update stat cards
+                document.querySelectorAll('.stat-value').forEach(el => {
+                    // This is a simple approach; you could use IDs for precision
+                });
+            }
+
+        } catch (err) {
+            console.error('Scan error:', err);
+        }
+    }
+
+    function updateStudentRow(rollNo, status, time, confidence) {
+        // Find the row with this roll number and update it
+        const rows = document.querySelectorAll('table tbody tr');
+        for (const row of rows) {
+            const cells = row.querySelectorAll('td');
+            if (cells.length > 1 && cells[1].textContent.trim() === rollNo) {
+                // Update status badge
+                cells[3].innerHTML = '<span class="badge badge-present"><i class="bi bi-check-circle"></i> Present</span>';
+                // Update time
+                cells[4].textContent = time;
+                // Update confidence
+                if (confidence) cells[5].textContent = confidence.toFixed(3);
+                // Update method
+                cells[6].innerHTML = '<small class="text-info"><i class="bi bi-camera-video"></i> Auto</small>';
+                // Flash green
+                row.style.background = 'var(--success-light)';
+                setTimeout(() => { row.style.background = ''; }, 2000);
+                break;
+            }
+        }
+    }
+</script>
+{% endif %}
