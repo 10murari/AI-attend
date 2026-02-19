@@ -27,7 +27,7 @@
                         <select name="teacher" class="form-select">
                             <option value="">— No teacher assigned —</option>
                             {% for t in teachers %}
-                            <option value="{{ t.id }}" {% if current_teacher_id==t.id %}selected{% endif %}>
+                            <option value="{{ t.id }}" {% if current_teacher_id == t.id %}selected{% endif %}>
                                 {{ t.full_name }}
                                 {% if t.department %}({{ t.department.code }}){% endif %}
                             </option>

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import api
 
 urlpatterns = [
     # Teacher
@@ -18,4 +19,7 @@ urlpatterns = [
     # HOD
     path('dept-overview/', views.hod_overview, name='hod_overview'),
     path('dept-students/', views.hod_students, name='hod_students'),
+
+    # API — face recognition
+    path('api/recognize/<int:session_id>/', api.recognize_frame, name='recognize_frame'),
 ]

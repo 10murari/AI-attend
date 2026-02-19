@@ -1,103 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Students — AttendAI{% endblock %}
-
+{% block title %}Students{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h4><i class="bi bi-people"></i> Students <small class="text-muted fw-normal ms-2">({{ total_students }})</small>
-    </h4>
-    <a href="{% url 'student_create' %}" class="btn btn-primary btn-sm btn-icon">
-        <i class="bi bi-plus-lg"></i> Add Student
-    </a>
+    <h4><i class="bi bi-people"></i> Students <small class="text-muted fw-normal ms-2">({{ total_students }})</small></h4>
+    <a href="{% url 'student_create' %}" class="btn btn-primary btn-sm btn-icon"><i class="bi bi-plus-lg"></i> Add Student</a>
 </div>
-
-<div class="card mb-3">
-    <div class="card-body py-2">
-        <form method="get" class="d-flex gap-3 align-items-center">
-            <select name="department" class="form-select form-select-sm" style="max-width: 200px;"
-                onchange="this.form.submit()">
-                <option value="">All Departments</option>
-                {% for dept in departments %}
-                <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"d" %}selected{% endif %}>{{
-                    dept.code }}</option>
-                {% endfor %}
-            </select>
-            <select name="semester" class="form-select form-select-sm" style="max-width: 150px;"
-                onchange="this.form.submit()">
-                <option value="">All Semesters</option>
-                {% for i in "12345678" %}
-                <option value="{{ i }}" {% if selected_sem == i %}selected{% endif %}>Semester {{ i }}</option>
-                {% endfor %}
-            </select>
-            {% if selected_dept or selected_sem %}
-            <a href="{% url 'student_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
-            {% endif %}
-        </form>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-body p-0">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Roll No</th>
-                    <th>Name</th>
-                    <th>Department</th>
-                    <th>Semester</th>
-                    <th>Face Enrolled</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in student_data %}
-                <tr>
-                    <td class="text-muted">{{ forloop.counter }}</td>
-                    <td><strong>{{ item.user.roll_no }}</strong></td>
-                    <td>{{ item.user.full_name }}</td>
-                    <td>
-                        {% if item.user.department %}
-                        <span class="badge bg-dark">{{ item.user.department.code }}</span>
-                        {% else %}—{% endif %}
-                    </td>
-                    <td>Sem {{ item.user.semester|default:"—" }}</td>
-                    <td>
-                        {% if item.has_embedding %}
-                        <span class="badge badge-present"><i class="bi bi-check-circle"></i> Enrolled</span>
-                        {% else %}
-                        <span class="badge badge-absent"><i class="bi bi-x-circle"></i> Not Enrolled</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="d-flex gap-1">
-                            <a href="{% url 'student_edit' item.user.pk %}" class="btn btn-outline-secondary btn-sm"
-                                title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <a href="{% url 'student_reset_password' item.user.pk %}"
-                                class="btn btn-outline-info btn-sm" title="Reset Password">
-                                <i class="bi bi-key"></i>
-                            </a>
-                            <a href="{% url 'student_delete' item.user.pk %}" class="btn btn-outline-danger btn-sm"
-                                title="Deactivate">
-                                <i class="bi bi-trash"></i>
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7">
-                        <div class="empty-state">
-                            <i class="bi bi-people"></i>
-                            <h6>No students found</h6>
-                            <p>Add students or adjust filters.</p>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
+<div class="card mb-3"><div class="card-body py-2">
+    <form method="get" class="d-flex gap-3 align-items-center">
+        <select name="department" class="form-select form-select-sm" style="max-width:220px;" onchange="this.form.submit()">
+            <option value="">All Departments</option>
+            {% for dept in departments %}<option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"d" %}selected{% endif %}>{{ dept.code }} - {{ dept.name }}</option>{% endfor %}
+        </select>
+        <select name="semester" class="form-select form-select-sm" style="max-width:160px;" onchange="this.form.submit()">
+            <option value="">All Semesters</option>
+            <option value="1" {% if selected_sem == "1" %}selected{% endif %}>Sem 1</option>
+            <option value="2" {% if selected_sem == "2" %}selected{% endif %}>Sem 2</option>
+            <option value="3" {% if selected_sem == "3" %}selected{% endif %}>Sem 3</option>
+            <option value="4" {% if selected_sem == "4" %}selected{% endif %}>Sem 4</option>
+            <option value="5" {% if selected_sem == "5" %}selected{% endif %}>Sem 5</option>
+            <option value="6" {% if selected_sem == "6" %}selected{% endif %}>Sem 6</option>
+            <option value="7" {% if selected_sem == "7" %}selected{% endif %}>Sem 7</option>
+            <option value="8" {% if selected_sem == "8" %}selected{% endif %}>Sem 8</option>
+        </select>
+        {% if selected_dept or selected_sem %}<a href="{% url 'student_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>{% endif %}
+    </form>
+</div></div>
+<div class="card"><div class="card-body p-0">
+<table class="table table-hover">
+<thead><tr><th>#</th><th>Roll No</th><th>Name</th><th>Department</th><th>Semester</th><th>Face Enrolled</th><th>Actions</th></tr></thead>
+<tbody>
+{% for item in student_data %}
+<tr>
+    <td class="text-muted">{{ forloop.counter }}</td>
+    <td><strong>{{ item.user.roll_no }}</strong></td>
+    <td>{{ item.user.full_name }}</td>
+    <td>{% if item.user.department %}<span class="badge bg-dark">{{ item.user.department.code }}</span>{% else %}-{% endif %}</td>
+    <td>Sem {{ item.user.semester|default:"-" }}</td>
+    <td>{% if item.has_embedding %}<span class="badge badge-present"><i class="bi bi-check-circle"></i> Enrolled</span>{% else %}<span class="badge badge-absent"><i class="bi bi-x-circle"></i> Not Enrolled</span>{% endif %}</td>
+    <td><div class="d-flex gap-1">
+        <a href="{% url 'student_edit' item.user.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></a>
+        <a href="{% url 'student_reset_password' item.user.pk %}" class="btn btn-outline-info btn-sm"><i class="bi bi-key"></i></a>
+        <a href="{% url 'student_delete' item.user.pk %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></a>
+    </div></td>
+</tr>
+{% empty %}<tr><td colspan="7"><div class="empty-state"><i class="bi bi-people"></i><h6>No students found</h6></div></td></tr>{% endfor %}
+</tbody></table></div></div>
 {% endblock %}

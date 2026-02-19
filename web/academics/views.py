@@ -26,13 +26,25 @@ def admin_required(view_func):
 @login_required
 @admin_required
 def department_list(request):
-    departments = Department.objects.annotate(
-        num_students=Count('users', filter=Q(users__role='student', users__is_active=True)),
-        num_teachers=Count('users', filter=Q(users__role__in=['teacher', 'hod'], users__is_active=True)),
-        num_subjects=Count('subjects', filter=Q(subjects__is_active=True)),
-    )
+    departments = Department.objects.filter(is_active=True)
+
+    dept_data = []
+    for dept in departments:
+        dept_data.append({
+            'dept': dept,
+            'num_students': CustomUser.objects.filter(
+                role='student', department=dept, is_active=True
+            ).count(),
+            'num_teachers': CustomUser.objects.filter(
+                role__in=['teacher', 'hod'], department=dept, is_active=True
+            ).count(),
+            'num_subjects': Subject.objects.filter(
+                department=dept, is_active=True
+            ).count(),
+        })
+
     return render(request, 'academics/department_list.html', {
-        'departments': departments,
+        'dept_data': dept_data,
     })
 
 

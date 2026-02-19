@@ -47,8 +47,7 @@
             {% if user.role == 'admin' %}
             <li class="sidebar-section">Management</li>
             <li>
-                <a class="nav-link {% if 'department' in request.path %}active{% endif %}"
-                    href="{% url 'department_list' %}">
+                <a class="nav-link {% if 'department' in request.path %}active{% endif %}" href="{% url 'department_list' %}">
                     <i class="bi bi-building"></i> Departments
                 </a>
             </li>
@@ -68,10 +67,15 @@
                     <i class="bi bi-people"></i> Students
                 </a>
             </li>
+            <li class="sidebar-section">Face Recognition</li>
+            <li>
+                <a class="nav-link {% if 'enrollment' in request.path %}active{% endif %}" href="{% url 'enroll_page' %}">
+                    <i class="bi bi-camera-video-fill"></i> Enroll Faces
+                </a>
+            </li>
             <li class="sidebar-section">Attendance</li>
             <li>
-                <a class="nav-link {% if 'all-sessions' in request.path %}active{% endif %}"
-                    href="{% url 'admin_all_sessions' %}">
+                <a class="nav-link {% if 'all-sessions' in request.path %}active{% endif %}" href="{% url 'admin_all_sessions' %}">
                     <i class="bi bi-calendar-check"></i> All Sessions
                 </a>
             </li>

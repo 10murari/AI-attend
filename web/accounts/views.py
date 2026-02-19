@@ -74,14 +74,31 @@ def get_admin_context():
     from django.utils import timezone
 
     today = timezone.now().date()
+    departments = Department.objects.filter(is_active=True)
+
+    dept_list = []
+    for dept in departments:
+        dept_list.append({
+            'dept': dept,
+            'num_students': CustomUser.objects.filter(
+                role='student', department=dept, is_active=True
+            ).count(),
+            'num_teachers': CustomUser.objects.filter(
+                role__in=['teacher', 'hod'], department=dept, is_active=True
+            ).count(),
+            'num_subjects': Subject.objects.filter(
+                department=dept, is_active=True
+            ).count(),
+        })
+
     return {
-        'total_departments': Department.objects.filter(is_active=True).count(),
+        'total_departments': departments.count(),
         'total_teachers': CustomUser.objects.filter(role__in=['teacher', 'hod'], is_active=True).count(),
         'total_students': CustomUser.objects.filter(role='student', is_active=True).count(),
         'total_subjects': Subject.objects.filter(is_active=True).count(),
         'today_sessions': Session.objects.filter(date=today).count(),
         'active_sessions': Session.objects.filter(status='ACTIVE').count(),
-        'departments': Department.objects.filter(is_active=True).prefetch_related('subjects'),
+        'dept_data': dept_list,
         'recent_sessions': Session.objects.select_related(
             'subject', 'teacher', 'department'
         ).order_by('-date', '-start_time')[:5],
