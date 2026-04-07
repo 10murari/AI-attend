@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import lifecycle
 
 urlpatterns = [
     # Departments
@@ -31,4 +32,10 @@ urlpatterns = [
 
     # Admin: All sessions
     path('all-sessions/', views.admin_all_sessions, name='admin_all_sessions'),
+
+     # Semester lifecycle
+    path('semesters/', lifecycle.semester_management, name='semester_management'),
+    path('semesters/promote/', lifecycle.promote_semester, name='promote_semester'),
+    path('semesters/graduate/', lifecycle.graduate_students, name='graduate_students'),
+
 ]
