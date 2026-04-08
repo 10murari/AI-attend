@@ -13,6 +13,10 @@ from .models import Session, Attendance
 logger = logging.getLogger(__name__)
 
 
+def current_local_time():
+    return timezone.localtime(timezone.now()).time().replace(microsecond=0)
+
+
 @login_required
 @require_POST
 def recognize_frame(request, session_id):
@@ -99,7 +103,7 @@ def recognize_frame(request, session_id):
                         session=session,
                         student_id=match['user_id'],
                         status='PRESENT',
-                        time_marked=timezone.now().time(),
+                        time_marked=current_local_time(),
                         confidence=match['similarity'],
                         marked_by='auto',
                     )

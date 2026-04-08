@@ -133,6 +133,22 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+# ============================================================
+# ATTENDANCE NOTIFICATION SETTINGS
+# ============================================================
+
+# Request window: hours after session end during which student can request correction
+ATTENDANCE_REQUEST_WINDOW = 48  # 48 hours
+
+# Automatically send absence notifications after session ends
+AUTO_SEND_ABSENCE_NOTIFICATIONS = True
+
+# Notification retention (days) - after which old notifications are deleted
+NOTIFICATION_RETENTION_DAYS = 30
+
+# Pagination
+NOTIFICATIONS_PER_PAGE = 20
+
 
 # Session security
 SESSION_COOKIE_AGE = 1800  # 30 minutes
