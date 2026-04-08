@@ -755,3 +755,95 @@ a:hover {
         margin-left: 0;
     }
 }
+
+
+
+/* ==============================================================
+   MOBILE RESPONSIVE — add to end of style.css
+   ============================================================== */
+
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: var(--sidebar-bg);
+    color: #fff;
+    z-index: 1050;
+    padding: 0 1rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mobile-header h5 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.mobile-header .btn {
+    color: #fff;
+    font-size: 1.3rem;
+    padding: 0.25rem;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1035;
+}
+
+@media (max-width: 992px) {
+    .mobile-header {
+        display: flex;
+    }
+
+    .sidebar {
+        transform: translateX(-100%);
+        z-index: 1040;
+        transition: transform 0.3s ease;
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 1rem;
+        padding-top: calc(56px + 1rem);
+    }
+
+    .page-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.3rem;
+    }
+
+    .table {
+        font-size: 0.78rem;
+    }
+
+    .d-flex.gap-1 {
+        gap: 0.25rem !important;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.72rem;
+    }
+}

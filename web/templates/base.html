@@ -16,12 +16,20 @@
 <body>
     {% if user.is_authenticated %}
 
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <button class="btn" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+        <h5><i class="bi bi-camera-video-fill"></i> AttendAI</h5>
+        <a href="{% url 'profile' %}" class="btn"><i class="bi bi-person-circle"></i></a>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-brand">
             <h5><i class="bi bi-camera-video-fill"></i> AttendAI</h5>
             <small>Face Recognition Attendance</small>
         </div>
-
         <div class="sidebar-user">
             <div class="user-name">{{ user.full_name|default:user.username }}</div>
             <div class="user-meta">
@@ -31,137 +39,86 @@
                 {% endif %}
                 {% if user.roll_no %}
                 <span class="badge bg-dark bg-opacity-50 badge-role">{{ user.roll_no }}</span>
-                {% endif %}
+                {%endif %}
             </div>
         </div>
-
         <ul class="sidebar-nav">
             <li class="sidebar-section">Main</li>
-            <li>
-                <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'home' %}active{% endif %}"
-                    href="{% url 'dashboard' %}">
-                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
-                </a>
-            </li>
+            <li><a class="nav-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'home' %}active{% endif %}"
+                    href="{% url 'dashboard' %}"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a></li>
 
             {% if user.role == 'admin' %}
             <li class="sidebar-section">Management</li>
-            <li>
-                <a class="nav-link {% if 'department' in request.path %}active{% endif %}" href="{% url 'department_list' %}">
-                    <i class="bi bi-building"></i> Departments
-                </a>
-            </li>
-            <li>
-                <a class="nav-link {% if 'teacher' in request.path and 'subject' not in request.path %}active{% endif %}"
-                    href="{% url 'teacher_list' %}">
-                    <i class="bi bi-person-badge"></i> Teachers
-                </a>
-            </li>
-            <li>
-                <a class="nav-link {% if 'subject' in request.path %}active{% endif %}" href="{% url 'subject_list' %}">
-                    <i class="bi bi-book"></i> Subjects
-                </a>
-            </li>
-            <li>
-                <a class="nav-link {% if 'student' in request.path %}active{% endif %}" href="{% url 'student_list' %}">
-                    <i class="bi bi-people"></i> Students
-                </a>
-            </li>
+            <li><a class="nav-link {% if 'department' in request.path %}active{% endif %}"
+                    href="{% url 'department_list' %}"><i class="bi bi-building"></i> Departments</a></li>
+            <li><a class="nav-link {% if 'teacher' in request.path and 'subject' not in request.path %}active{% endif %}"
+                    href="{% url 'teacher_list' %}"><i class="bi bi-person-badge"></i> Teachers</a></li>
+            <li><a class="nav-link {% if 'subject' in request.path %}active{% endif %}"
+                    href="{% url 'subject_list' %}"><i class="bi bi-book"></i> Subjects</a></li>
+            <li><a class="nav-link {% if 'student' in request.path %}active{% endif %}"
+                    href="{% url 'student_list' %}"><i class="bi bi-people"></i> Students</a></li>
             <li class="sidebar-section">Face Recognition</li>
-            <li>
-                <a class="nav-link {% if 'enrollment' in request.path %}active{% endif %}" href="{% url 'enroll_page' %}">
-                    <i class="bi bi-camera-video-fill"></i> Enroll Faces
-                </a>
-            </li>
-            <li class="sidebar-section">Attendance</li>
-            <li>
-                <a class="nav-link {% if 'all-sessions' in request.path %}active{% endif %}" href="{% url 'admin_all_sessions' %}">
-                    <i class="bi bi-calendar-check"></i> All Sessions
-                </a>
-            </li>
+            <li><a class="nav-link {% if 'enrollment' in request.path %}active{% endif %}"
+                    href="{% url 'enroll_page' %}"><i class="bi bi-camera-video-fill"></i> Enroll Faces</a></li>
+            <li class="sidebar-section">Reports</li>
+            <li><a class="nav-link {% if 'all-sessions' in request.path %}active{% endif %}"
+                    href="{% url 'admin_all_sessions' %}"><i class="bi bi-calendar-check"></i> All Sessions</a></li>
+            <li><a class="nav-link {% if 'reports' in request.path %}active{% endif %}"
+                    href="{% url 'reports_page' %}"><i class="bi bi-file-earmark-bar-graph"></i> Reports</a></li>
             <li class="sidebar-section">System</li>
-            <li>
-                <a class="nav-link" href="{% url 'admin:index' %}">
-                    <i class="bi bi-gear-fill"></i> Django Admin
-                </a>
-            </li>
+            <li><a class="nav-link" href="{% url 'admin:index' %}"><i class="bi bi-gear-fill"></i> Django Admin</a></li>
+            <li><a class="nav-link {% if 'semester' in request.path %}active{% endif %}" href="{% url 'semester_management' %}"><i class="bi bi-mortarboard"></i> Semesters</a></li>
             {% endif %}
 
             {% if user.role == 'teacher' or user.role == 'hod' %}
             <li class="sidebar-section">Attendance</li>
-            <li>
-                <a class="nav-link {% if 'my-subjects' in request.path %}active{% endif %}"
-                    href="{% url 'teacher_subjects' %}">
-                    <i class="bi bi-journal-text"></i> My Subjects
-                </a>
-            </li>
-            <li>
-                <a class="nav-link {% if 'session-history' in request.path %}active{% endif %}"
-                    href="{% url 'session_history' %}">
-                    <i class="bi bi-clock-history"></i> Session History
-                </a>
-            </li>
+            <li><a class="nav-link {% if 'my-subjects' in request.path %}active{% endif %}"
+                    href="{% url 'teacher_subjects' %}"><i class="bi bi-journal-text"></i> My Subjects</a></li>
+            <li><a class="nav-link {% if 'session-history' in request.path %}active{% endif %}"
+                    href="{% url 'session_history' %}"><i class="bi bi-clock-history"></i> Session History</a></li>
+            <li class="sidebar-section">Reports</li>
+            <li><a class="nav-link {% if 'reports' in request.path %}active{% endif %}"
+                    href="{% url 'reports_page' %}"><i class="bi bi-file-earmark-bar-graph"></i> Reports</a></li>
             {% endif %}
 
             {% if user.role == 'hod' %}
             <li class="sidebar-section">Department</li>
-            <li>
-                <a class="nav-link {% if 'dept-overview' in request.path %}active{% endif %}"
-                    href="{% url 'hod_overview' %}">
-                    <i class="bi bi-bar-chart-line"></i> Dept Overview
-                </a>
-            </li>
-            <li>
-                <a class="nav-link {% if 'dept-students' in request.path %}active{% endif %}"
-                    href="{% url 'hod_students' %}">
-                    <i class="bi bi-people-fill"></i> Dept Students
-                </a>
-            </li>
+            <li><a class="nav-link {% if 'dept-overview' in request.path %}active{% endif %}"
+                    href="{% url 'hod_overview' %}"><i class="bi bi-bar-chart-line"></i> Dept Overview</a></li>
+            <li><a class="nav-link {% if 'dept-students' in request.path %}active{% endif %}"
+                    href="{% url 'hod_students' %}"><i class="bi bi-people-fill"></i> Dept Students</a></li>
             {% endif %}
 
             {% if user.role == 'student' %}
             <li class="sidebar-section">My Attendance</li>
-            <li>
-                <a class="nav-link {% if 'my-attendance' in request.path %}active{% endif %}"
-                    href="{% url 'student_attendance' %}">
-                    <i class="bi bi-bar-chart-fill"></i> Attendance
-                </a>
-            </li>
+            <li><a class="nav-link {% if 'my-attendance' in request.path %}active{% endif %}"
+                    href="{% url 'student_attendance' %}"><i class="bi bi-bar-chart-fill"></i> Attendance</a></li>
             {% endif %}
 
             <li class="sidebar-section">Account</li>
-            <li>
-                <a class="nav-link {% if 'profile' in request.path %}active{% endif %}" href="{% url 'profile' %}">
-                    <i class="bi bi-person-circle"></i> Profile
-                </a>
-            </li>
-            <li>
-                <a class="nav-link {% if 'change-password' in request.path %}active{% endif %}"
-                    href="{% url 'change_password' %}">
-                    <i class="bi bi-key"></i> Change Password
-                </a>
-            </li>
+            <li><a class="nav-link {% if 'profile' in request.path %}active{% endif %}" href="{% url 'profile' %}"><i
+                        class="bi bi-person-circle"></i> Profile</a></li>
+            <li><a class="nav-link {% if 'change-password' in request.path %}active{% endif %}"
+                    href="{% url 'change_password' %}"><i class="bi bi-key"></i> Change Password</a></li>
         </ul>
-
         <div class="sidebar-footer">
-            <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm w-100 btn-icon">
-                <i class="bi bi-box-arrow-left"></i> Logout
-            </a>
+            <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm w-100 btn-icon"><i
+                    class="bi bi-box-arrow-left"></i> Logout</a>
         </div>
     </nav>
 
+    <!-- Main Content -->
     <div class="main-content">
         {% if messages %}
         {% for message in messages %}
         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
             <i
-                class="bi {% if message.tags == 'success' %}bi-check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}bi-exclamation-triangle{% elif message.tags == 'warning' %}bi-exclamation-circle{% else %}bi-info-circle{% endif %}"></i>
+                class="bi {% if message.tags == 'success' %}bi-check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}bi-exclamation-triangle{% else %}bi-info-circle{% endif %}"></i>
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         {% endfor %}
         {% endif %}
-
         {% block content %}{% endblock %}
     </div>
 
@@ -170,6 +127,21 @@
     {% endif %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebarOverlay').classList.toggle('show');
+        }
+        // Close sidebar when clicking a link (mobile)
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 992) {
+                    document.getElementById('sidebar').classList.remove('show');
+                    document.getElementById('sidebarOverlay').classList.remove('show');
+                }
+            });
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 
