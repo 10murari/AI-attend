@@ -37,6 +37,13 @@ class Session(models.Model):
         on_delete=models.CASCADE,
         related_name='sessions',
     )
+    batch = models.ForeignKey(
+        'academics.Batch',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sessions',
+    )
     semester = models.PositiveIntegerField()
     date = models.DateField(default=timezone.now)
     start_time = models.TimeField(null=True, blank=True)

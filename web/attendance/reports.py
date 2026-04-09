@@ -7,11 +7,11 @@ from datetime import datetime, timedelta
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.utils import timezone
 from django.db.models import Count, Q
 from .models import Session, Attendance
-from academics.models import Department, Subject, SubjectTeacher
+from academics.models import Department, Subject, SubjectTeacher, Batch
 from accounts.models import CustomUser
 
 
@@ -36,6 +36,7 @@ def reports_page(request):
 
     if user.role == 'admin':
         context['departments'] = Department.objects.filter(is_active=True)
+        context['batches'] = Batch.objects.select_related('department').filter(is_active=True).order_by('department__code', '-year')
         context['report_type'] = 'admin'
     elif user.role == 'hod':
         context['department'] = user.department
@@ -43,11 +44,21 @@ def reports_page(request):
         context['subjects'] = Subject.objects.filter(
             department=user.department, is_active=True
         )
+        context['batches'] = Batch.objects.filter(
+            department=user.department,
+            is_active=True,
+        ).order_by('-year')
     elif user.role == 'teacher':
         context['report_type'] = 'teacher'
-        context['assignments'] = SubjectTeacher.objects.filter(
+        assignments = SubjectTeacher.objects.filter(
             teacher=user
-        ).select_related('subject')
+        ).select_related('subject', 'subject__department')
+        context['assignments'] = assignments
+        teacher_department_ids = assignments.values_list('subject__department_id', flat=True).distinct()
+        context['batches'] = Batch.objects.select_related('department').filter(
+            department_id__in=teacher_department_ids,
+            is_active=True,
+        ).order_by('department__code', '-year')
     elif user.role == 'student':
         context['report_type'] = 'student'
 
@@ -62,6 +73,7 @@ def export_report_csv(request):
     date_to = request.GET.get('date_to', '')
     dept_id = request.GET.get('department', '')
     subject_id = request.GET.get('subject', '')
+    batch_id = request.GET.get('batch', '')
     report_type = request.GET.get('type', 'attendance')
 
     # Parse dates
@@ -77,14 +89,20 @@ def export_report_csv(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     writer = csv.writer(response)
 
-    if report_type == 'student_summary' and user.role in ('admin', 'hod'):
+    if report_type == 'student_summary':
+        if user.role not in ('admin', 'hod'):
+            return HttpResponseForbidden('Not allowed to export this report type.')
         # Student summary report
-        writer.writerow(['Roll No', 'Name', 'Department', 'Semester',
+        writer.writerow(['Roll No', 'Name', 'Department', 'Batch', 'Semester',
                          'Total Sessions', 'Present', 'Late', 'Absent', 'Attendance %'])
 
         students = CustomUser.objects.filter(role='student', is_active=True)
-        if dept_id:
+        if user.role == 'hod' and user.department_id:
+            students = students.filter(department=user.department)
+        elif dept_id:
             students = students.filter(department_id=dept_id)
+        if batch_id:
+            students = students.filter(batch_id=batch_id)
 
         for student in students.order_by('department__code', 'semester', 'roll_no'):
             total = Attendance.objects.filter(
@@ -112,13 +130,16 @@ def export_report_csv(request):
             writer.writerow([
                 student.roll_no, student.full_name,
                 student.department.code if student.department else '-',
+                str(student.batch) if student.batch else '-',
                 student.semester or '-',
                 total, present, late, max(absent, 0), pct,
             ])
 
     elif report_type == 'session_detail':
+        if user.role not in ('admin', 'hod', 'teacher'):
+            return HttpResponseForbidden('Not allowed to export this report type.')
         # Session-by-session detail
-        writer.writerow(['Date', 'Subject', 'Teacher', 'Department', 'Semester',
+        writer.writerow(['Date', 'Subject', 'Teacher', 'Department', 'Batch', 'Semester',
                          'Roll No', 'Student', 'Status', 'Time', 'Confidence', 'Method'])
 
         sessions = Session.objects.filter(
@@ -129,6 +150,8 @@ def export_report_csv(request):
             sessions = sessions.filter(department_id=dept_id)
         if subject_id:
             sessions = sessions.filter(subject_id=subject_id)
+        if batch_id:
+            sessions = sessions.filter(batch_id=batch_id)
 
         # Permission check
         if user.role == 'teacher':
@@ -140,7 +163,7 @@ def export_report_csv(request):
             for record in session.records.select_related('student').order_by('student__roll_no'):
                 writer.writerow([
                     session.date, session.subject.code, session.teacher.full_name,
-                    session.department.code, session.semester,
+                    session.department.code, str(session.batch) if session.batch else '-', session.semester,
                     record.student.roll_no, record.student.full_name,
                     record.status,
                     record.time_marked if record.time_marked else '',
@@ -168,11 +191,19 @@ def export_report_csv(request):
             ])
 
     else:
+        if user.role == 'student':
+            return HttpResponseForbidden('Not allowed to export this report type.')
         # Default: attendance summary
-        writer.writerow(['Subject', 'Department', 'Semester', 'Total Sessions',
+        selected_batch = Batch.objects.select_related('department').filter(id=batch_id).first() if batch_id else None
+        writer.writerow(['Subject', 'Department', 'Batch Filter', 'Semester', 'Total Sessions',
                          'Avg Present', 'Avg Absent', 'Avg Rate'])
 
         subjects = Subject.objects.filter(is_active=True)
+        if user.role == 'hod' and user.department_id:
+            subjects = subjects.filter(department=user.department)
+        elif user.role == 'teacher':
+            subjects = subjects.filter(teacher_assignments__teacher=user).distinct()
+
         if dept_id:
             subjects = subjects.filter(department_id=dept_id)
 
@@ -181,6 +212,8 @@ def export_report_csv(request):
                 subject=subject, status='COMPLETED',
                 date__gte=d_from, date__lte=d_to,
             )
+            if batch_id:
+                sessions = sessions.filter(batch_id=batch_id)
             total = sessions.count()
             if total == 0:
                 continue
@@ -191,7 +224,9 @@ def export_report_csv(request):
 
             writer.writerow([
                 f'{subject.code} - {subject.name}',
-                subject.department.code, subject.semester,
+                subject.department.code,
+                str(selected_batch) if selected_batch else 'All',
+                subject.semester,
                 total, round(avg_present, 1), round(avg_absent, 1),
                 f'{round(avg_rate, 1)}%',
             ])

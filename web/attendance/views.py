@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.db.models import Count, Q
 from .models import Session, Attendance, Notification, AttendanceCorrectionRequest
-from academics.models import SubjectTeacher, Subject
+from academics.models import Batch, SubjectTeacher, Subject
 from accounts.models import CustomUser
 
 from django.http import JsonResponse
@@ -56,16 +56,23 @@ def teacher_subjects(request):
             subject=subject, teacher=request.user, status='ACTIVE'
         ).first()
 
-        student_count = CustomUser.objects.filter(
+        student_qs = CustomUser.objects.filter(
             role='student', department=subject.department,
             semester=subject.semester, is_active=True,
-        ).count()
+        )
+        student_count = student_qs.count()
+        batch_counts = list(
+            student_qs.values('batch__year')
+            .annotate(total=Count('id'))
+            .order_by('-batch__year')
+        )
 
         subjects_data.append({
             'subject': subject,
             'total_sessions': total_sessions,
             'active_session': active_session,
             'student_count': student_count,
+            'batch_counts': batch_counts,
         })
 
     return render(request, 'attendance/teacher_subjects.html', {
@@ -81,6 +88,10 @@ def teacher_subjects(request):
 @teacher_required
 def start_session(request, subject_id):
     subject = get_object_or_404(Subject, pk=subject_id, is_active=True)
+    available_batches = Batch.objects.filter(
+        department=subject.department,
+        is_active=True,
+    ).order_by('-year')
 
     # Verify teacher is assigned to this subject
     if not SubjectTeacher.objects.filter(teacher=request.user, subject=subject).exists():
@@ -94,26 +105,39 @@ def start_session(request, subject_id):
         return redirect('session_detail', session_id=active.id)
 
     if request.method == 'POST':
+        batch_id = request.POST.get('batch')
+        selected_batch = available_batches.filter(pk=batch_id).first()
+        if not selected_batch:
+            messages.error(request, 'Please select a valid batch before starting session.')
+            return redirect('start_session', subject_id=subject.id)
+
         session = Session.objects.create(
             subject=subject,
             teacher=request.user,
             department=subject.department,
+            batch=selected_batch,
             semester=subject.semester,
             date=timezone.now().date(),
             start_time=current_local_time(),
             status='ACTIVE',
         )
-        messages.success(request, f'Session started for {subject.name}.')
+        messages.success(request, f'Session started for {subject.name} (Batch {selected_batch.year}).')
         return redirect('session_detail', session_id=session.id)
 
-    student_count = CustomUser.objects.filter(
-        role='student', department=subject.department,
-        semester=subject.semester, is_active=True,
-    ).count()
+    selected_batch = available_batches.first()
+    if selected_batch:
+        student_count = CustomUser.objects.filter(
+            role='student', department=subject.department,
+            semester=subject.semester, batch=selected_batch, is_active=True,
+        ).count()
+    else:
+        student_count = 0
 
     return render(request, 'attendance/start_session.html', {
         'subject': subject,
         'student_count': student_count,
+        'available_batches': available_batches,
+        'selected_batch': selected_batch,
     })
 
 
@@ -130,11 +154,18 @@ def session_detail(request, session_id):
         messages.error(request, 'Not your session.')
         return redirect('teacher_subjects')
 
+    if request.user.role == 'hod' and session.department_id != request.user.department_id:
+        messages.error(request, 'Access denied for other department session.')
+        return redirect('teacher_subjects')
+
     # Get all students for this subject
     students = CustomUser.objects.filter(
         role='student', department=session.department,
         semester=session.semester, is_active=True,
-    ).order_by('roll_no')
+    )
+    if session.batch_id:
+        students = students.filter(batch_id=session.batch_id)
+    students = students.order_by('roll_no')
 
     # Get existing attendance records
     records = {r.student_id: r for r in session.records.all()}
@@ -178,6 +209,14 @@ def mark_manual(request, session_id, student_id, status):
         messages.error(request, 'Session is not active.')
         return redirect('session_detail', session_id=session.id)
 
+    if (
+        student.department_id != session.department_id
+        or student.semester != session.semester
+        or (session.batch_id and student.batch_id != session.batch_id)
+    ):
+        messages.error(request, 'Selected student does not belong to this session cohort.')
+        return redirect('session_detail', session_id=session.id)
+
     record, created = Attendance.objects.update_or_create(
         session=session,
         student=student,
@@ -205,6 +244,8 @@ def end_session(request, session_id):
             role='student', department=session.department,
             semester=session.semester, is_active=True,
         )
+        if session.batch_id:
+            students = students.filter(batch_id=session.batch_id)
 
         marked_ids = set(session.records.values_list('student_id', flat=True))
         absent_count = 0
@@ -243,22 +284,33 @@ def end_session(request, session_id):
 def session_history(request):
     sessions = Session.objects.filter(
         teacher=request.user
-    ).select_related('subject', 'department').order_by('-date', '-start_time')
+    ).select_related('subject', 'department', 'batch').order_by('-date', '-start_time')
 
     # Filter by subject if provided
     subject_id = request.GET.get('subject')
+    batch_id = request.GET.get('batch')
     if subject_id:
         sessions = sessions.filter(subject_id=subject_id)
+    if batch_id:
+        sessions = sessions.filter(batch_id=batch_id)
 
     # Get teacher's subjects for filter dropdown
     assignments = SubjectTeacher.objects.filter(
         teacher=request.user
     ).select_related('subject')
 
+    department_ids = assignments.values_list('subject__department_id', flat=True).distinct()
+    batches = Batch.objects.filter(
+        department_id__in=department_ids,
+        is_active=True,
+    ).select_related('department').order_by('department__code', '-year')
+
     return render(request, 'attendance/session_history.html', {
         'sessions': sessions,
         'assignments': assignments,
         'selected_subject': subject_id,
+        'batches': batches,
+        'selected_batch': batch_id,
     })
 # ==============================================================
 # TEACHER: EXPORT CSV
@@ -272,6 +324,10 @@ def export_session_csv(request, session_id):
     if session.teacher != request.user and request.user.role not in ('admin', 'hod'):
         messages.error(request, 'Access denied.')
         return redirect('dashboard')
+
+    if request.user.role == 'hod' and session.department_id != request.user.department_id:
+        messages.error(request, 'Access denied for other department session.')
+        return redirect('teacher_subjects')
 
     response = HttpResponse(content_type='text/csv')
     filename = f"attendance_{session.subject.code}_{session.date}.csv"
@@ -314,14 +370,28 @@ def student_attendance(request):
         is_active=True,
     )
 
+    session_filters = {
+        'status': 'COMPLETED',
+    }
+    if user.batch_id:
+        session_filters['batch_id'] = user.batch_id
+    else:
+        session_filters['batch__isnull'] = True
+
     subject_stats = []
     for subject in subjects:
-        total = Session.objects.filter(subject=subject, status='COMPLETED').count()
+        total = Session.objects.filter(subject=subject, **session_filters).count()
         present = Attendance.objects.filter(
-            session__subject=subject, student=user, status='PRESENT'
+            session__subject=subject,
+            session__status='COMPLETED',
+            student=user,
+            status='PRESENT'
         ).count()
         late = Attendance.objects.filter(
-            session__subject=subject, student=user, status='LATE'
+            session__subject=subject,
+            session__status='COMPLETED',
+            student=user,
+            status='LATE'
         ).count()
         absent = total - present - late
         pct = round(((present + late) / total) * 100, 1) if total > 0 else 0
@@ -725,6 +795,7 @@ def get_pending_correction_requests(request):
         )
     else:  # HOD
         query = AttendanceCorrectionRequest.objects.filter(
+            attendance__session__department=request.user.department,
             status=AttendanceCorrectionRequest.Status.PENDING
         )
     
@@ -787,6 +858,12 @@ def approve_correction_request(request, request_id):
                 'success': False,
                 'error': 'You can only approve requests assigned to you'
             }, status=403)
+
+        if request.user.role == 'hod' and correction_request.attendance.session.department_id != request.user.department_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'You can only approve requests from your department'
+            }, status=403)
         
         correction_request.approve(request.user, corrected_status, comment)
         
@@ -829,6 +906,12 @@ def reject_correction_request(request, request_id):
                 'success': False,
                 'error': 'You can only reject requests assigned to you'
             }, status=403)
+
+        if request.user.role == 'hod' and correction_request.attendance.session.department_id != request.user.department_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'You can only reject requests from your department'
+            }, status=403)
         
         correction_request.reject(request.user, comment)
         
@@ -867,8 +950,18 @@ def session_detail_with_correction(request, session_id):
             session=session,
             student=request.user
         )
-    else:
+    elif request.user.role == 'teacher':
+        if session.teacher_id != request.user.id:
+            return HttpResponseForbidden('Access denied.')
         attendance = None
+    elif request.user.role == 'hod':
+        if session.department_id != request.user.department_id:
+            return HttpResponseForbidden('Access denied.')
+        attendance = None
+    elif request.user.role == 'admin':
+        attendance = None
+    else:
+        return HttpResponseForbidden('Access denied.')
     
     # Check request window
     now = timezone.now()
@@ -919,7 +1012,9 @@ def correction_requests_teacher_page(request):
     if request.user.role == 'teacher':
         requests_qs = AttendanceCorrectionRequest.objects.filter(teacher=request.user)
     else:
-        requests_qs = AttendanceCorrectionRequest.objects.all()
+        requests_qs = AttendanceCorrectionRequest.objects.filter(
+            attendance__session__department=request.user.department
+        )
 
     requests_qs = requests_qs.select_related(
         'student',

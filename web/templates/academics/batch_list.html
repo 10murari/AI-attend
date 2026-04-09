@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Batches — AttendAI{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h4><i class="bi bi-collection"></i> Batches</h4>
+    <a href="{% url 'batch_create' %}" class="btn btn-primary btn-sm btn-icon">
+        <i class="bi bi-plus-lg"></i> Add Batch
+    </a>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    A batch is unique per department and year. Example: <strong>2026 (COMP)</strong>.
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-select">
+                    <option value="">All departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.id }}" {% if selected_dept == d.id|stringformat:'s' %}selected{% endif %}>
+                        {{ d.code }} — {{ d.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'batch_list' %}" class="btn btn-outline-secondary w-100">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if batches %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Batch</th>
+                        <th>Department</th>
+                        <th>Year</th>
+                        <th>Code</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in batches %}
+                    <tr>
+                        <td><strong>{{ b.year }}</strong> <span class="text-muted">({{ b.department.code }})</span></td>
+                        <td>{{ b.department.code }} — {{ b.department.name }}</td>
+                        <td>{{ b.year }}</td>
+                        <td><span class="badge bg-dark">{{ b.code }}</span></td>
+                        <td>
+                            {% if b.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-collection"></i>
+            <h6>No batches found</h6>
+            <p>Create a batch first, then add students. Batch year and department together make the batch.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

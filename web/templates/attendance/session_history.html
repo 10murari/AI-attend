@@ -20,7 +20,16 @@
                 </option>
                 {% endfor %}
             </select>
-            {% if selected_subject %}
+            <select name="batch" class="form-select form-select-sm" style="max-width: 260px;"
+                onchange="this.form.submit()">
+                <option value="">All Batches</option>
+                {% for b in batches %}
+                <option value="{{ b.id }}" {% if selected_batch == b.id|stringformat:"d" %}selected{% endif %}>
+                    {{ b.department.code }} — {{ b.year }} ({{ b.code }})
+                </option>
+                {% endfor %}
+            </select>
+            {% if selected_subject or selected_batch %}
             <a href="{% url 'session_history' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
             {% endif %}
         </form>
@@ -35,6 +44,7 @@
                     <th>Date</th>
                     <th>Subject</th>
                     <th>Department</th>
+                    <th>Batch</th>
                     <th>Time</th>
                     <th>Status</th>
                     <th class="text-center">Present</th>
@@ -53,6 +63,13 @@
                         <small class="text-muted">{{ session.subject.code }}</small>
                     </td>
                     <td><span class="badge bg-dark">{{ session.department.code }}</span></td>
+                    <td>
+                        {% if session.batch %}
+                        <span class="badge bg-primary">{{ session.batch.year }} ({{ session.batch.code }})</span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {{ session.start_time|time:"H:i" }}
                         {% if session.end_time %}— {{ session.end_time|time:"H:i" }}{% endif %}
@@ -91,7 +108,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="10">
+                    <td colspan="11">
                         <div class="empty-state">
                             <i class="bi bi-clock-history"></i>
                             <h6>No sessions yet</h6>

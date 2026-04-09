@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — AttendAI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4>{{ title }}</h4>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div class="text-danger small mt-1">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-icon">
+                            <i class="bi bi-check-lg"></i> Save Batch
+                        </button>
+                        <a href="{% url 'batch_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-info-circle"></i> Batch Code Guide</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0" style="font-size: 0.9rem;">
+                    <li><strong>Year</strong> is the batch intake year (e.g., <code>2026</code> or <code>2078</code>).</li>
+                    <li><strong>Code</strong> can be left blank; it will auto-use the last 2 digits of the year.</li>
+                    <li>Roll format is <strong>BatchCode + DeptCode + Sequence</strong> (e.g., <code>780322</code>).</li>
+                    <li>Set department roll code first (e.g., COMP = <code>03</code>).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

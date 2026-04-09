@@ -10,6 +10,28 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-body">
+                {% if not is_edit and not active_batch_exists %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    No active batch rows exist yet. You can still create a student by entering a batch year;
+                    the matching batch will be created automatically.
+                    You can also manage batches from
+                    <a href="{% url 'batch_list' %}" class="alert-link">Batch Management</a>.
+                </div>
+                {% endif %}
+                {% if not is_edit and missing_roll_departments %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-octagon"></i>
+                    <strong>Roll code setup required:</strong> students cannot be created for departments missing a roll code.
+                    Missing:
+                    {% for d in missing_roll_departments %}
+                    <span class="badge bg-light text-dark border">{{ d.code }}{% if d.name %} — {{ d.name }}{% endif %}</span>
+                    {% endfor %}
+                    <div class="mt-2">
+                        <a href="{% url 'department_list' %}" class="alert-link">Open Department Management</a>
+                    </div>
+                </div>
+                {% endif %}
                 <form method="post">
                     {% csrf_token %}
                     {% for field in form %}
@@ -43,12 +65,22 @@
             </div>
             <div class="card-body">
                 <ul class="mb-0" style="font-size: 0.85rem;">
-                    <li>Username will be automatically set to the <strong>Roll Number</strong></li>
-                    <li>If password is left blank, it defaults to the roll number</li>
+                    <li>Enter <strong>Batch Year</strong> and select <strong>Department</strong>; batch is auto-created or reused</li>
+                    <li>Username is automatically set to the generated <strong>Roll Number</strong></li>
+                    <li>If password is left blank, it defaults to the generated roll number</li>
                     <li>Face enrollment is done separately via the Enrollment page</li>
                     <li>Student will be able to login and view their attendance</li>
                 </ul>
             </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if is_edit %}
+    <div class="col-md-6 mt-3">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            Batch and department stay fixed after creation to keep roll numbers stable.
         </div>
     </div>
     {% endif %}

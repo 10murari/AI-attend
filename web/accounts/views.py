@@ -148,11 +148,29 @@ def get_student_context(user):
         department=user.department, semester=user.semester, is_active=True,
     )
 
+    session_filters = {
+        'status': 'COMPLETED',
+    }
+    if user.batch_id:
+        session_filters['batch_id'] = user.batch_id
+    else:
+        session_filters['batch__isnull'] = True
+
     subject_stats = []
     for subject in subjects:
-        total = Session.objects.filter(subject=subject, status='COMPLETED').count()
-        present = Attendance.objects.filter(session__subject=subject, student=user, status='PRESENT').count()
-        late = Attendance.objects.filter(session__subject=subject, student=user, status='LATE').count()
+        total = Session.objects.filter(subject=subject, **session_filters).count()
+        present = Attendance.objects.filter(
+            session__subject=subject,
+            session__status='COMPLETED',
+            student=user,
+            status='PRESENT',
+        ).count()
+        late = Attendance.objects.filter(
+            session__subject=subject,
+            session__status='COMPLETED',
+            student=user,
+            status='LATE',
+        ).count()
         absent = max(total - present - late, 0)
         pct = round(((present + late) / total) * 100, 1) if total > 0 else 0
 

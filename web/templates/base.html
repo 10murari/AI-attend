@@ -51,6 +51,8 @@
 
             {% if user.role == 'admin' %}
             <li class="sidebar-section">Management</li>
+                <li><a class="nav-link {% if 'batch' in request.path %}active{% endif %}"
+                    href="{% url 'batch_list' %}"><i class="bi bi-collection"></i> Batches</a></li>
             <li><a class="nav-link {% if 'department' in request.path %}active{% endif %}"
                     href="{% url 'department_list' %}"><i class="bi bi-building"></i> Departments</a></li>
             <li><a class="nav-link {% if 'teacher' in request.path and 'subject' not in request.path %}active{% endif %}"

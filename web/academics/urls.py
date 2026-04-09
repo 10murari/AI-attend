@@ -3,6 +3,10 @@ from . import views
 from . import lifecycle
 
 urlpatterns = [
+    # Batches
+    path('batches/', views.batch_list, name='batch_list'),
+    path('batches/create/', views.batch_create, name='batch_create'),
+
     # Departments
     path('departments/', views.department_list, name='department_list'),
     path('departments/create/', views.department_create, name='department_create'),

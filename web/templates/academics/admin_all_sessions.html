@@ -18,7 +18,16 @@
                 </option>
                 {% endfor %}
             </select>
-            {% if selected_dept %}
+            <select name="batch" class="form-select form-select-sm" style="max-width: 260px;"
+                onchange="this.form.submit()">
+                <option value="">All Batches</option>
+                {% for b in batches %}
+                <option value="{{ b.id }}" {% if selected_batch == b.id|stringformat:"d" %}selected{% endif %}>
+                    {{ b.department.code }} — {{ b.year }} ({{ b.code }})
+                </option>
+                {% endfor %}
+            </select>
+            {% if selected_dept or selected_batch %}
             <a href="{% url 'admin_all_sessions' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
             {% endif %}
         </form>
@@ -34,6 +43,7 @@
                     <th>Subject</th>
                     <th>Teacher</th>
                     <th>Dept</th>
+                    <th>Batch</th>
                     <th>Sem</th>
                     <th>Time</th>
                     <th>Status</th>
@@ -54,6 +64,13 @@
                     </td>
                     <td>{{ session.teacher.full_name }}</td>
                     <td><span class="badge bg-dark">{{ session.department.code }}</span></td>
+                    <td>
+                        {% if session.batch %}
+                        <span class="badge bg-primary">{{ session.batch.year }} ({{ session.batch.code }})</span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
                     <td>{{ session.semester }}</td>
                     <td>
                         {{ session.start_time|time:"H:i" }}{% if session.end_time %} — {{ session.end_time|time:"H:i"}}{% endif %}
@@ -84,7 +101,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="12">
+                    <td colspan="13">
                         <div class="empty-state">
                             <i class="bi bi-calendar-x"></i>
                             <h6>No sessions yet</h6>

@@ -27,8 +27,18 @@
                         <td>Semester {{ subject.semester }}</td>
                     </tr>
                     <tr>
+                        <td class="text-muted">Batch</td>
+                        <td>
+                            {% if selected_batch %}
+                            Batch {{ selected_batch.year }}
+                            {% else %}
+                            <span class="text-danger">No batch configured for this department</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
                         <td class="text-muted">Students</td>
-                        <td><strong>{{ student_count }}</strong> enrolled students</td>
+                        <td><strong>{{ student_count }}</strong> students in selected batch</td>
                     </tr>
                     <tr>
                         <td class="text-muted">Date</td>
@@ -49,8 +59,19 @@
 
                 <form method="post">
                     {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Batch</label>
+                        <select name="batch" class="form-select" required>
+                            <option value="" disabled {% if not selected_batch %}selected{% endif %}>Select batch</option>
+                            {% for batch in available_batches %}
+                            <option value="{{ batch.id }}" {% if selected_batch and batch.id == selected_batch.id %}selected{% endif %}>
+                                Batch {{ batch.year }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-success btn-icon">
+                        <button type="submit" class="btn btn-success btn-icon" {% if not available_batches %}disabled{% endif %}>
                             <i class="bi bi-play-fill"></i> Start Session Now
                         </button>
                         <a href="{% url 'teacher_subjects' %}" class="btn btn-outline-secondary">Cancel</a>

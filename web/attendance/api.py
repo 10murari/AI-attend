@@ -66,14 +66,16 @@ def recognize_frame(request, session_id):
 
         # Filter gallery to only students in this session's class
         from accounts.models import CustomUser
-        class_students = set(
-            CustomUser.objects.filter(
-                role='student',
-                department=session.department,
-                semester=session.semester,
-                is_active=True,
-            ).values_list('id', flat=True)
+        class_student_qs = CustomUser.objects.filter(
+            role='student',
+            department=session.department,
+            semester=session.semester,
+            is_active=True,
         )
+        if session.batch_id:
+            class_student_qs = class_student_qs.filter(batch_id=session.batch_id)
+
+        class_students = set(class_student_qs.values_list('id', flat=True))
         session_gallery = {uid: data for uid, data in gallery.items() if uid in class_students}
 
         # Detect faces

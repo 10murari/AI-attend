@@ -7,8 +7,8 @@
 
 <div class="alert alert-info">
     <i class="bi bi-info-circle"></i>
-    <strong>How it works:</strong> Promote moves all students in a semester to the next one.
-    Graduate archives Semester 8 students (deactivates accounts, preserves data).
+    <strong>How it works:</strong> This view is grouped by batch. Promote moves only that batch's students to next semester.
+    Graduate archives only that batch's Semester 8 students (deactivates accounts, preserves data).
 </div>
 
 {% for item in dept_data %}
@@ -18,49 +18,60 @@
     </div>
     <div class="card-body">
 
-        {% if item.semesters %}
+        {% if item.batch_rows %}
 
-        <!-- SEMESTER COLUMN LAYOUT -->
-        <div class="row g-3">
-
-            {% for sem, count in item.semesters.items %}
-            <div class="col-auto text-center d-flex flex-column align-items-center">
-
-                <!-- Semester Box -->
-                <div class="border rounded p-2 mb-2" style="min-width:80px">
-                    <div class="text-muted small">Sem {{ sem }}</div>
-                    <div class="fw-bold fs-5">{{ count }}</div>
-                    <div class="text-muted" style="font-size:0.7rem">students</div>
+        {% for row in item.batch_rows %}
+        <div class="border rounded p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <span class="badge bg-primary">Batch {{ row.batch.year }}</span>
                 </div>
+                <div class="text-muted small">Total students: <strong>{{ row.total_students }}</strong></div>
+            </div>
 
-                <!-- Promote Button -->
-                {% if sem < 8 %} <form method="post" action="{% url 'promote_semester' %}"
-                    onsubmit="return confirm('Promote {{ count }} students from Sem {{ sem }} to Sem {{ sem|add:1 }} in {{ item.dept.code }}?')">
-                    {% csrf_token %}
-                    <input type="hidden" name="department" value="{{ item.dept.id }}">
-                    <input type="hidden" name="from_semester" value="{{ sem }}">
-                    <button class="btn btn-outline-primary btn-sm btn-icon w-100">
-                        <i class="bi bi-arrow-up-circle"></i> Promote
-                    </button>
-                    </form>
-                    {% endif %}
+            <div class="row g-3">
+                {% for sem, sem_data in row.semesters.items %}
+                <div class="col-auto text-center d-flex flex-column align-items-center">
+                    <div class="border rounded p-2 mb-2" style="min-width:80px">
+                        <div class="text-muted small">Sem {{ sem }}</div>
+                        <div class="fw-bold fs-5">{{ sem_data.count }}</div>
+                        <div class="text-muted" style="font-size:0.7rem">students</div>
+                    </div>
 
-                    <!-- Graduate Button -->
-                    {% if sem == 8 %}
-                    <form method="post" action="{% url 'graduate_students' %}"
-                        onsubmit="return confirm('Graduate {{ count }} Semester 8 students from {{ item.dept.code }}? They will be deactivated.')">
+                    {% if sem < 8 %}
+                    <form method="post" action="{% url 'promote_semester' %}"
+                        onsubmit="return confirm('Promote {{ sem_data.count }} students from Batch {{ row.batch.year }} Sem {{ sem }} to Sem {{ sem|add:1 }}?')">
                         {% csrf_token %}
                         <input type="hidden" name="department" value="{{ item.dept.id }}">
+                        <input type="hidden" name="batch" value="{{ row.batch.id }}">
+                        <input type="hidden" name="from_semester" value="{{ sem }}">
+                        <button class="btn btn-outline-primary btn-sm btn-icon w-100" {% if not sem_data.can_promote %}disabled{% endif %}>
+                            <i class="bi bi-arrow-up-circle"></i> Promote
+                        </button>
+                    </form>
+                    {% if not sem_data.can_promote %}
+                    <div class="text-danger mt-1" style="font-size:0.72rem; max-width:120px;">
+                        Sem {{ sem|add:1 }} already has {{ sem_data.next_count }} student(s)
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    {% if sem == 8 %}
+                    <form method="post" action="{% url 'graduate_students' %}"
+                        onsubmit="return confirm('Graduate {{ sem_data.count }} students from Batch {{ row.batch.year }} in {{ item.dept.code }}? They will be deactivated.')">
+                        {% csrf_token %}
+                        <input type="hidden" name="department" value="{{ item.dept.id }}">
+                        <input type="hidden" name="batch" value="{{ row.batch.id }}">
                         <button class="btn btn-outline-danger btn-sm btn-icon w-100">
                             <i class="bi bi-mortarboard"></i> Graduate
                         </button>
                     </form>
                     {% endif %}
-
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-
         </div>
+        {% endfor %}
 
         {% else %}
         <p class="text-muted mb-0">No active students in this department.</p>

@@ -1,12 +1,19 @@
 from django.contrib import admin
-from .models import Department, Subject, SubjectTeacher
+from .models import Batch, Department, Subject, SubjectTeacher
 
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ('code', 'name', 'hod', 'is_active', 'student_count', 'teacher_count')
+    list_display = ('code', 'roll_code', 'name', 'hod', 'is_active', 'student_count', 'teacher_count')
     list_filter = ('is_active',)
-    search_fields = ('name', 'code')
+    search_fields = ('name', 'code', 'roll_code')
+
+
+@admin.register(Batch)
+class BatchAdmin(admin.ModelAdmin):
+    list_display = ('department', 'year', 'code', 'is_active')
+    list_filter = ('department', 'is_active')
+    search_fields = ('department__name', 'department__code', 'year')
 
 
 @admin.register(Subject)

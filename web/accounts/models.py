@@ -36,6 +36,19 @@ class CustomUser(AbstractUser):
         max_length=20, unique=True, null=True, blank=True,
         help_text="Unique roll number for students"
     )
+    batch = models.ForeignKey(
+        'academics.Batch',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='students',
+        help_text="Student intake batch/cohort",
+    )
+    batch_sequence = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Sequence number within selected batch and department",
+    )
     semester = models.PositiveIntegerField(
         null=True, blank=True,
         help_text="Current semester (1-8) for students"
@@ -44,6 +57,12 @@ class CustomUser(AbstractUser):
 
     class Meta:
         ordering = ['role', 'full_name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['batch', 'batch_sequence'],
+                name='unique_batch_student_sequence',
+            )
+        ]
 
     def __str__(self):
         if self.role == self.Role.STUDENT and self.roll_no:

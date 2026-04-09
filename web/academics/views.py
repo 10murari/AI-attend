@@ -1,13 +1,16 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
+from django.db.models import Max
 from .models import Department, Subject, SubjectTeacher
 from .forms import (
-    DepartmentForm, SubjectForm, SubjectTeacherForm,
+    BatchForm, DepartmentForm, SubjectForm, SubjectTeacherForm,
     TeacherForm, TeacherEditForm, StudentForm, StudentEditForm
 )
 from accounts.models import CustomUser
+from .models import Batch
 
 
 def admin_required(view_func):
@@ -19,7 +22,51 @@ def admin_required(view_func):
     return wrapper
 
 
+def _generate_roll_no(batch, department, sequence):
+    batch_code = batch.code or str(batch.year)[-2:]
+    return f"{batch_code}{department.roll_code}{sequence:02d}"
+
+
 # ==============================================================
+# BATCH MANAGEMENT
+# ============================================================== 
+
+@login_required
+@admin_required
+def batch_list(request):
+    batches = Batch.objects.select_related('department').order_by('department__code', '-year')
+
+    dept_filter = request.GET.get('department')
+    if dept_filter:
+        batches = batches.filter(department_id=dept_filter)
+
+    return render(request, 'academics/batch_list.html', {
+        'batches': batches,
+        'departments': Department.objects.filter(is_active=True),
+        'selected_dept': dept_filter,
+    })
+
+
+@login_required
+@admin_required
+def batch_create(request):
+    if request.method == 'POST':
+        form = BatchForm(request.POST)
+        if form.is_valid():
+            batch = form.save()
+            messages.success(request, f'Batch {batch.year} ({batch.code}) created for {batch.department.code}.')
+            return redirect('batch_list')
+    else:
+        form = BatchForm()
+
+    return render(request, 'academics/batch_form.html', {
+        'form': form,
+        'title': 'Add Batch',
+        'is_edit': False,
+    })
+
+
+# ============================================================== 
 # DEPARTMENT CRUD
 # ==============================================================
 
@@ -347,14 +394,17 @@ def subject_delete(request, pk):
 def student_list(request):
     students = CustomUser.objects.filter(
         role='student', is_active=True
-    ).select_related('department').order_by('department__code', 'semester', 'roll_no')
+    ).select_related('department', 'batch', 'batch__department').order_by('department__code', 'semester', 'roll_no')
 
     dept_filter = request.GET.get('department')
     sem_filter = request.GET.get('semester')
+    batch_filter = request.GET.get('batch')
     if dept_filter:
         students = students.filter(department_id=dept_filter)
     if sem_filter:
         students = students.filter(semester=sem_filter)
+    if batch_filter:
+        students = students.filter(batch_id=batch_filter)
 
     from enrollment.models import FaceEmbedding
     enrolled_user_ids = set(
@@ -372,32 +422,78 @@ def student_list(request):
         'student_data': student_data,
         'total_students': len(student_data),
         'departments': Department.objects.filter(is_active=True),
+        'batches': Batch.objects.select_related('department').filter(is_active=True).order_by('department__code', '-year'),
         'selected_dept': dept_filter,
         'selected_sem': sem_filter,
+        'selected_batch': batch_filter,
     })
 
 
 @login_required
 @admin_required
 def student_create(request):
+    active_batch_exists = Batch.objects.filter(is_active=True).exists()
+    missing_roll_departments = Department.objects.filter(
+        is_active=True,
+    ).filter(
+        Q(roll_code__isnull=True) | Q(roll_code='')
+    ).order_by('code')
+
     if request.method == 'POST':
         form = StudentForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.role = 'student'
-            user.username = user.roll_no  # Username = roll number
-            user.save()
-            user.set_password(form.cleaned_data.get('password', user.roll_no))
-            user.save()
-            messages.success(request,
-                f'Student "{user.full_name}" ({user.roll_no}) created. '
-                f'Password: {form.cleaned_data.get("password", user.roll_no)}'
-            )
-            return redirect('student_list')
+            try:
+                with transaction.atomic():
+                    user = form.save(commit=False)
+                    user.role = 'student'
+                    batch_year = form.cleaned_data['batch_year']
+                    department = user.department
+
+                    locked_department = Department.objects.select_for_update().get(pk=department.id)
+                    locked_batch, _ = Batch.objects.select_for_update().get_or_create(
+                        department=locked_department,
+                        year=batch_year,
+                        defaults={
+                            'code': str(batch_year)[-2:],
+                            'is_active': True,
+                        },
+                    )
+
+                    current_max = CustomUser.objects.filter(
+                        role='student',
+                        batch_id=locked_batch.id,
+                        department_id=locked_department.id,
+                    ).aggregate(max_seq=Max('batch_sequence'))['max_seq'] or 0
+
+                    sequence = current_max + 1
+                    if sequence > 99:
+                        form.add_error('batch', 'Batch sequence limit reached for selected department (max 99).')
+                        raise ValueError('batch sequence limit reached')
+
+                    user.batch_sequence = sequence
+                    user.batch = locked_batch
+                    user.roll_no = _generate_roll_no(locked_batch, locked_department, sequence)
+                    user.username = user.roll_no
+                    user.save()
+                    user.set_password(form.cleaned_data.get('password', user.roll_no))
+                    user.save(update_fields=['password'])
+
+                messages.success(request,
+                    f'Student "{user.full_name}" ({user.roll_no}) created. '
+                    f'Password: {form.cleaned_data.get("password", user.roll_no)}'
+                )
+                return redirect('student_list')
+            except ValueError:
+                pass
+            except IntegrityError:
+                form.add_error(None, 'Could not generate a unique roll number. Please retry.')
     else:
         form = StudentForm()
+
     return render(request, 'academics/student_form.html', {
         'form': form, 'title': 'Add Student', 'is_edit': False,
+        'active_batch_exists': active_batch_exists,
+        'missing_roll_departments': missing_roll_departments,
     })
 
 
@@ -464,15 +560,24 @@ def student_reset_password(request, pk):
 def admin_all_sessions(request):
     from attendance.models import Session
     sessions = Session.objects.all().select_related(
-        'subject', 'teacher', 'department'
+        'subject', 'teacher', 'department', 'batch'
     ).order_by('-date', '-start_time')
 
     dept_filter = request.GET.get('department')
+    batch_filter = request.GET.get('batch')
     if dept_filter:
         sessions = sessions.filter(department_id=dept_filter)
+    if batch_filter:
+        sessions = sessions.filter(batch_id=batch_filter)
+
+    batches = Batch.objects.select_related('department').filter(is_active=True).order_by('department__code', '-year')
+    if dept_filter:
+        batches = batches.filter(department_id=dept_filter)
 
     return render(request, 'academics/admin_all_sessions.html', {
         'sessions': sessions,
         'departments': Department.objects.filter(is_active=True),
+        'batches': batches,
         'selected_dept': dept_filter,
+        'selected_batch': batch_filter,
     })

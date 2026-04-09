@@ -11,6 +11,14 @@
             <option value="">All Departments</option>
             {% for dept in departments %}<option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"d" %}selected{% endif %}>{{ dept.code }} - {{ dept.name }}</option>{% endfor %}
         </select>
+        <select name="batch" class="form-select form-select-sm" style="max-width:240px;" onchange="this.form.submit()">
+            <option value="">All Batches</option>
+            {% for batch in batches %}
+            <option value="{{ batch.id }}" {% if selected_batch == batch.id|stringformat:"d" %}selected{% endif %}>
+                {{ batch.year }} ({{ batch.code }}) - {{ batch.department.code }}
+            </option>
+            {% endfor %}
+        </select>
         <select name="semester" class="form-select form-select-sm" style="max-width:160px;" onchange="this.form.submit()">
             <option value="">All Semesters</option>
             <option value="1" {% if selected_sem == "1" %}selected{% endif %}>Sem 1</option>
@@ -27,7 +35,7 @@
 </div></div>
 <div class="card"><div class="card-body p-0">
 <table class="table table-hover">
-<thead><tr><th>#</th><th>Roll No</th><th>Name</th><th>Department</th><th>Semester</th><th>Face Enrolled</th><th>Actions</th></tr></thead>
+<thead><tr><th>#</th><th>Roll No</th><th>Name</th><th>Department</th><th>Batch</th><th>Semester</th><th>Face Enrolled</th><th>Actions</th></tr></thead>
 <tbody>
 {% for item in student_data %}
 <tr>
@@ -35,6 +43,7 @@
     <td><strong>{{ item.user.roll_no }}</strong></td>
     <td>{{ item.user.full_name }}</td>
     <td>{% if item.user.department %}<span class="badge bg-dark">{{ item.user.department.code }}</span>{% else %}-{% endif %}</td>
+    <td>{% if item.user.batch %}<span class="badge bg-primary">{{ item.user.batch.year }} ({{ item.user.batch.code }})</span>{% else %}-{% endif %}</td>
     <td>Sem {{ item.user.semester|default:"-" }}</td>
     <td>{% if item.has_embedding %}<span class="badge badge-present"><i class="bi bi-check-circle"></i> Enrolled</span>{% else %}<span class="badge badge-absent"><i class="bi bi-x-circle"></i> Not Enrolled</span>{% endif %}</td>
     <td><div class="d-flex gap-1">
@@ -43,6 +52,6 @@
         <a href="{% url 'student_delete' item.user.pk %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></a>
     </div></td>
 </tr>
-{% empty %}<tr><td colspan="7"><div class="empty-state"><i class="bi bi-people"></i><h6>No students found</h6></div></td></tr>{% endfor %}
+{% empty %}<tr><td colspan="8"><div class="empty-state"><i class="bi bi-people"></i><h6>No students found</h6></div></td></tr>{% endfor %}
 </tbody></table></div></div>
 {% endblock %}

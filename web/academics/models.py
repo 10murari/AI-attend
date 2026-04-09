@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import RegexValidator
 
 
 class Department(models.Model):
@@ -8,6 +9,14 @@ class Department(models.Model):
     code = models.CharField(
         max_length=10, unique=True,
         help_text="Short code, e.g., COMP, CIVIL"
+    )
+    roll_code = models.CharField(
+        max_length=2,
+        unique=True,
+        null=True,
+        blank=True,
+        validators=[RegexValidator(r'^\d{2}$', 'Roll code must be exactly 2 digits.')],
+        help_text="Two-digit department code used in roll numbers, e.g., 03",
     )
     hod = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -65,6 +74,39 @@ class Subject(models.Model):
         """Get assigned teacher (one teacher per subject)."""
         assignment = self.teacher_assignments.first()
         return assignment.teacher if assignment else None
+
+
+class Batch(models.Model):
+    """Student intake batch for a department (cohort)."""
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.CASCADE,
+        related_name='batches',
+    )
+    year = models.PositiveIntegerField(help_text="Intake year, e.g., 2026")
+    code = models.CharField(
+        max_length=2,
+        null=True,
+        blank=True,
+        validators=[RegexValidator(r'^\d{2}$', 'Batch code must be exactly 2 digits.')],
+        help_text="Two-digit batch code used in roll numbers, e.g., 26 or 78",
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['department', '-year']
+        unique_together = ['department', 'year']
+
+    def __str__(self):
+        display_code = self.code or str(self.year)[-2:]
+        return f"{self.department.code} — Batch {self.year} ({display_code})"
+
+    def save(self, *args, **kwargs):
+        if not self.code and self.year:
+            self.code = str(self.year)[-2:]
+        super().save(*args, **kwargs)
 
 
 class SubjectTeacher(models.Model):

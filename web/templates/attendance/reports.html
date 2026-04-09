@@ -45,6 +45,12 @@
                         <option value="{{ d.id }}">{{ d.code }} - {{ d.name }}</option>
                         {%endfor %}
                     </select>
+                    <select name="batch" class="form-select form-select-sm" style="max-width:240px">
+                        <option value="">All Batches</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}">{{ b.department.code }} {{ b.year }} ({{ b.code }})</option>
+                        {% endfor %}
+                    </select>
                     <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
                         Download CSV</button>
                 </form>
@@ -67,6 +73,12 @@
                         <option value="{{ d.id }}">{{ d.code }}</option>
                         {% endfor %}
                     </select>
+                    <select name="batch" class="form-select form-select-sm" style="max-width:240px">
+                        <option value="">All Batches</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}">{{ b.department.code }} {{ b.year }} ({{ b.code }})</option>
+                        {% endfor %}
+                    </select>
                     <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
                         Download CSV</button>
                 </form>
@@ -83,6 +95,12 @@
                     <input type="hidden" name="date_from" value="{{ date_from }}">
                     <input type="hidden" name="date_to" value="{{ date_to }}">
                     <input type="hidden" name="type" value="attendance">
+                    <select name="batch" class="form-select form-select-sm" style="max-width:240px">
+                        <option value="">All Batches</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}">{{ b.department.code }} {{ b.year }} ({{ b.code }})</option>
+                        {% endfor %}
+                    </select>
                     <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
                         Download CSV</button>
                 </form>
@@ -102,6 +120,12 @@
                     <input type="hidden" name="date_to" value="{{ date_to }}">
                     <input type="hidden" name="type" value="student_summary">
                     <input type="hidden" name="department" value="{{ department.id }}">
+                    <select name="batch" class="form-select form-select-sm mb-2" style="max-width:250px">
+                        <option value="">All Batches</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}">{{ b.year }} ({{ b.code }})</option>
+                        {% endfor %}
+                    </select>
                     <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
                         Download CSV</button>
                 </form>
@@ -118,6 +142,12 @@
                     <input type="hidden" name="date_to" value="{{ date_to }}">
                     <input type="hidden" name="type" value="session_detail">
                     <input type="hidden" name="department" value="{{ department.id }}">
+                    <select name="batch" class="form-select form-select-sm mb-2" style="max-width:250px">
+                        <option value="">All Batches</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}">{{ b.year }} ({{ b.code }})</option>
+                        {% endfor %}
+                    </select>
                     <select name="subject" class="form-select form-select-sm mb-2" style="max-width:250px">
                         <option value="">All Subjects</option>
                         {% for s in subjects %}
@@ -142,6 +172,12 @@
                     <input type="hidden" name="date_from" value="{{ date_from }}">
                     <input type="hidden" name="date_to" value="{{ date_to }}">
                     <input type="hidden" name="type" value="session_detail">
+                    <select name="batch" class="form-select form-select-sm mb-2" style="max-width:250px">
+                        <option value="">All Batches</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}">{{ b.department.code }} {{ b.year }} ({{ b.code }})</option>
+                        {% endfor %}
+                    </select>
                     <select name="subject" class="form-select form-select-sm mb-2" style="max-width:250px">
                         <option value="">All Subjects</option>
                         {% for a in assignments %}
