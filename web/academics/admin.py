@@ -11,8 +11,8 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
-    list_display = ('department', 'year', 'code', 'is_active')
-    list_filter = ('department', 'is_active')
+    list_display = ('department', 'year', 'code', 'locked_semester', 'semester_lock_enabled', 'is_active')
+    list_filter = ('department', 'semester_lock_enabled', 'is_active')
     search_fields = ('department__name', 'department__code', 'year')
 
 

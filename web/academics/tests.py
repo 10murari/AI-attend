@@ -74,6 +74,78 @@ class StudentBatchRollGenerationTests(TestCase):
 		self.assertEqual(student.batch_id, batch.id)
 		self.assertEqual(batch.code, '26')
 
+	def test_student_create_blocks_semester_mismatch_when_batch_locked(self):
+		response_1 = self._create_student('Lock Seed Student')
+		self.assertEqual(response_1.status_code, 302)
+
+		response_2 = self.client.post(reverse('student_create'), {
+			'batch_year': 2026,
+			'department': self.department.id,
+			'full_name': 'Wrong Semester Student',
+			'semester': 3,
+			'email': '',
+			'phone': '',
+			'password': '',
+		}, follow=True)
+
+		self.assertEqual(response_2.status_code, 200)
+		self.assertContains(response_2, 'locked to Semester', status_code=200)
+		self.assertFalse(CustomUser.objects.filter(full_name='Wrong Semester Student').exists())
+
+
+class BatchSemesterLockStudentEditTests(TestCase):
+	def setUp(self):
+		self.admin_user = CustomUser.objects.create(
+			username='admin_edit_lock',
+			full_name='Admin Edit Lock',
+			role='admin',
+			is_active=True,
+		)
+		self.admin_user.set_password('admin1234')
+		self.admin_user.save(update_fields=['password'])
+
+		self.department = Department.objects.create(
+			name='Architecture',
+			code='ARCHX',
+			roll_code='61',
+			is_active=True,
+		)
+		self.batch = Batch.objects.create(
+			department=self.department,
+			year=2026,
+			code='26',
+			semester_lock_enabled=True,
+			locked_semester=6,
+			is_active=True,
+		)
+
+		self.student = CustomUser.objects.create(
+			username='260611',
+			full_name='Edit Locked Student',
+			role='student',
+			roll_no='260611',
+			department=self.department,
+			batch=self.batch,
+			batch_sequence=11,
+			semester=6,
+			is_active=True,
+		)
+
+		self.client.login(username='admin_edit_lock', password='admin1234')
+
+	def test_student_edit_blocks_semester_change_when_locked(self):
+		response = self.client.post(reverse('student_edit', args=[self.student.id]), {
+			'full_name': self.student.full_name,
+			'semester': 5,
+			'email': '',
+			'phone': '',
+		}, follow=True)
+
+		self.assertEqual(response.status_code, 200)
+		self.student.refresh_from_db()
+		self.assertEqual(self.student.semester, 6)
+		self.assertContains(response, 'locked to Semester 6', status_code=200)
+
 
 class SemesterLifecyclePromotionGuardTests(TestCase):
 	def setUp(self):
@@ -160,6 +232,29 @@ class SemesterLifecyclePromotionGuardTests(TestCase):
 		source_student.refresh_from_db()
 		self.assertEqual(source_student.semester, 8)
 		self.assertContains(response, 'Promoted 1 students from Semester 7 to Semester 8', status_code=200)
+		self.batch.refresh_from_db()
+		self.assertEqual(self.batch.locked_semester, 8)
+
+	def test_promote_semester_blocks_when_from_sem_not_locked_semester(self):
+		self.batch.locked_semester = 6
+		self.batch.save(update_fields=['locked_semester'])
+
+		self._create_student(
+			username='s501',
+			full_name='Sem5 Student',
+			roll_no='260101',
+			semester=5,
+			sequence=1,
+		)
+
+		response = self.client.post(reverse('promote_semester'), {
+			'department': self.department.id,
+			'batch': self.batch.id,
+			'from_semester': 5,
+		}, follow=True)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'currently locked to Semester 6', status_code=200)
 
 
 class AdminAllSessionsBatchFilterTests(TestCase):

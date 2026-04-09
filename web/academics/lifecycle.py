@@ -45,6 +45,7 @@ def semester_management(request):
                 if count > 0:
                     next_count = 0
                     can_promote = True
+                    lock_blocked = False
                     if sem < 8:
                         next_count = CustomUser.objects.filter(
                             role='student',
@@ -53,12 +54,20 @@ def semester_management(request):
                             semester=sem + 1,
                             is_active=True,
                         ).count()
-                        can_promote = next_count == 0
+                        lock_mismatch = (
+                            batch.semester_lock_enabled
+                            and batch.locked_semester is not None
+                            and batch.locked_semester != sem
+                        )
+                        lock_blocked = lock_mismatch
+                        can_promote = (next_count == 0) and (not lock_mismatch)
 
                     semesters[sem] = {
                         'count': count,
                         'next_count': next_count,
                         'can_promote': can_promote,
+                        'lock_blocked': lock_blocked,
+                        'locked_semester': batch.locked_semester,
                     }
 
             if semesters:
@@ -99,9 +108,22 @@ def promote_semester(request):
             return redirect('semester_management')
 
         with transaction.atomic():
+            locked_batch = Batch.objects.select_for_update().get(pk=batch.id)
+
+            if locked_batch.semester_lock_enabled:
+                if locked_batch.locked_semester is None:
+                    locked_batch.locked_semester = from_sem
+                    locked_batch.save(update_fields=['locked_semester'])
+                elif locked_batch.locked_semester != from_sem:
+                    messages.error(
+                        request,
+                        f'Promotion blocked: Batch {locked_batch.year} is currently locked to Semester {locked_batch.locked_semester}.',
+                    )
+                    return redirect('semester_management')
+
             source_students = CustomUser.objects.select_for_update().filter(
                 role='student', department_id=dept_id,
-                batch=batch, semester=from_sem, is_active=True,
+                batch=locked_batch, semester=from_sem, is_active=True,
             )
             source_count = source_students.count()
 
@@ -111,7 +133,7 @@ def promote_semester(request):
 
             target_count = CustomUser.objects.select_for_update().filter(
                 role='student', department_id=dept_id,
-                batch=batch, semester=from_sem + 1, is_active=True,
+                batch=locked_batch, semester=from_sem + 1, is_active=True,
             ).count()
 
             if target_count > 0:
@@ -123,6 +145,10 @@ def promote_semester(request):
                 return redirect('semester_management')
 
             source_students.update(semester=from_sem + 1)
+
+            if locked_batch.semester_lock_enabled:
+                locked_batch.locked_semester = from_sem + 1
+                locked_batch.save(update_fields=['locked_semester'])
 
         messages.success(request,
             f'Promoted {source_count} students from Semester {from_sem} to Semester {from_sem + 1} for Batch {batch.year}.')

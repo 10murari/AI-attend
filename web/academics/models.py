@@ -91,6 +91,15 @@ class Batch(models.Model):
         validators=[RegexValidator(r'^\d{2}$', 'Batch code must be exactly 2 digits.')],
         help_text="Two-digit batch code used in roll numbers, e.g., 26 or 78",
     )
+    semester_lock_enabled = models.BooleanField(
+        default=True,
+        help_text='When enabled, students in this batch are restricted to one locked semester.',
+    )
+    locked_semester = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text='Current locked semester for this batch (1-8).',
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

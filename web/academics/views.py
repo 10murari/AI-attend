@@ -459,6 +459,38 @@ def student_create(request):
                         },
                     )
 
+                    requested_semester = user.semester
+                    if locked_batch.semester_lock_enabled:
+                        if locked_batch.locked_semester is None:
+                            existing_semesters = set(
+                                CustomUser.objects.filter(
+                                    role='student',
+                                    batch_id=locked_batch.id,
+                                    department_id=locked_department.id,
+                                    is_active=True,
+                                )
+                                .exclude(semester__isnull=True)
+                                .values_list('semester', flat=True)
+                            )
+                            if len(existing_semesters) > 1:
+                                form.add_error('semester', 'Batch has mixed semesters. Clean batch data before adding new students.')
+                                raise ValueError('batch has mixed semesters')
+                            if len(existing_semesters) == 1:
+                                locked_batch.locked_semester = next(iter(existing_semesters))
+                                locked_batch.save(update_fields=['locked_semester'])
+
+                        if locked_batch.locked_semester is not None and requested_semester != locked_batch.locked_semester:
+                            form.add_error(
+                                'semester',
+                                f'Batch {locked_batch.year} is locked to Semester {locked_batch.locked_semester}. '
+                                f'Cannot add student in Semester {requested_semester}.',
+                            )
+                            raise ValueError('semester lock mismatch on create')
+
+                        if locked_batch.locked_semester is None and requested_semester:
+                            locked_batch.locked_semester = requested_semester
+                            locked_batch.save(update_fields=['locked_semester'])
+
                     current_max = CustomUser.objects.filter(
                         role='student',
                         batch_id=locked_batch.id,
@@ -504,9 +536,48 @@ def student_edit(request, pk):
     if request.method == 'POST':
         form = StudentEditForm(request.POST, instance=student)
         if form.is_valid():
-            form.save()
-            messages.success(request, f'{student.full_name} updated.')
-            return redirect('student_list')
+            try:
+                with transaction.atomic():
+                    updated_student = form.save(commit=False)
+
+                    if student.batch_id and student.batch.semester_lock_enabled:
+                        locked_batch = Batch.objects.select_for_update().get(pk=student.batch_id)
+
+                        if locked_batch.locked_semester is None:
+                            existing_semesters = set(
+                                CustomUser.objects.filter(
+                                    role='student',
+                                    batch_id=locked_batch.id,
+                                    department_id=student.department_id,
+                                    is_active=True,
+                                )
+                                .exclude(semester__isnull=True)
+                                .values_list('semester', flat=True)
+                            )
+                            if len(existing_semesters) > 1:
+                                form.add_error('semester', 'Batch has mixed semesters. Fix batch data before editing semester.')
+                                raise ValueError('batch has mixed semesters')
+                            if len(existing_semesters) == 1:
+                                locked_batch.locked_semester = next(iter(existing_semesters))
+                                locked_batch.save(update_fields=['locked_semester'])
+
+                        if locked_batch.locked_semester is not None and updated_student.semester != locked_batch.locked_semester:
+                            form.add_error(
+                                'semester',
+                                f'Batch {locked_batch.year} is locked to Semester {locked_batch.locked_semester}.',
+                            )
+                            raise ValueError('semester lock mismatch on edit')
+
+                        if locked_batch.locked_semester is None and updated_student.semester:
+                            locked_batch.locked_semester = updated_student.semester
+                            locked_batch.save(update_fields=['locked_semester'])
+
+                    updated_student.save()
+
+                messages.success(request, f'{student.full_name} updated.')
+                return redirect('student_list')
+            except ValueError:
+                pass
     else:
         form = StudentEditForm(instance=student)
     return render(request, 'academics/student_form.html', {

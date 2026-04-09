@@ -51,7 +51,11 @@
                     </form>
                     {% if not sem_data.can_promote %}
                     <div class="text-danger mt-1" style="font-size:0.72rem; max-width:120px;">
+                        {% if sem_data.lock_blocked %}
+                        Batch locked at Sem {{ sem_data.locked_semester }}
+                        {% else %}
                         Sem {{ sem|add:1 }} already has {{ sem_data.next_count }} student(s)
+                        {% endif %}
                     </div>
                     {% endif %}
                     {% endif %}
