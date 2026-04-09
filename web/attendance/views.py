@@ -464,7 +464,16 @@ def hod_students(request):
     dept = user.department
     students = CustomUser.objects.filter(
         role='student', department=dept, is_active=True
-    ).order_by('semester', 'roll_no')
+    ).select_related('batch', 'department').order_by('semester', 'roll_no')
+
+    batch_filter = request.GET.get('batch')
+    if batch_filter:
+        students = students.filter(batch_id=batch_filter)
+
+    batches = Batch.objects.filter(
+        department=dept,
+        is_active=True,
+    ).order_by('-year')
 
     student_data = []
     for student in students:
@@ -482,6 +491,8 @@ def hod_students(request):
     return render(request, 'attendance/hod_students.html', {
         'department': dept,
         'student_data': student_data,
+        'batches': batches,
+        'selected_batch': batch_filter,
     })
 
 

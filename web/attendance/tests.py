@@ -409,6 +409,8 @@ class HodDepartmentBoundaryTests(TestCase):
             full_name='HOD A',
         )
 
+        self.batch_a = Batch.objects.create(department=self.dept_a, year=2026, code='26', is_active=True)
+
         self.teacher_b = User.objects.create_user(
             username='teacher_b',
             password='testpass123',
@@ -464,6 +466,29 @@ class HodDepartmentBoundaryTests(TestCase):
             reason='Was present',
             status=AttendanceCorrectionRequest.Status.PENDING,
         )
+
+        self.student_a = User.objects.create_user(
+            username='student_a',
+            password='testpass123',
+            role='student',
+            roll_no='261101',
+            department=self.dept_a,
+            batch=self.batch_a,
+            batch_sequence=1,
+            semester=6,
+            full_name='Student A',
+            is_active=True,
+        )
+
+    def test_hod_student_list_can_filter_by_batch(self):
+        self.client.login(username='hod_a', password='testpass123')
+
+        response = self.client.get(reverse('hod_students'), {'batch': self.batch_a.id})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Student A')
+        self.assertContains(response, '2026 (26)')
+        self.assertNotContains(response, 'Student B')
 
     def test_hod_cannot_view_other_department_session_detail(self):
         self.client.login(username='hod_a', password='testpass123')

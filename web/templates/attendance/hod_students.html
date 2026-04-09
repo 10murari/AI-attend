@@ -6,6 +6,24 @@
     <h4><i class="bi bi-people-fill"></i> {{ department.name }} — Students</h4>
 </div>
 
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-3 align-items-center">
+            <select name="batch" class="form-select form-select-sm" style="max-width: 260px;" onchange="this.form.submit()">
+                <option value="">All Batches</option>
+                {% for b in batches %}
+                <option value="{{ b.id }}" {% if selected_batch == b.id|stringformat:"d" %}selected{% endif %}>
+                    {{ b.year }} ({{ b.code }})
+                </option>
+                {% endfor %}
+            </select>
+            {% if selected_batch %}
+            <a href="{% url 'hod_students' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body p-0">
         <table class="table table-hover">
@@ -14,6 +32,7 @@
                     <th>#</th>
                     <th>Roll No</th>
                     <th>Name</th>
+                    <th>Batch</th>
                     <th>Semester</th>
                     <th>Sessions</th>
                     <th>Present</th>
@@ -26,6 +45,13 @@
                     <td class="text-muted">{{ forloop.counter }}</td>
                     <td><strong>{{ item.student.roll_no }}</strong></td>
                     <td>{{ item.student.full_name }}</td>
+                    <td>
+                        {% if item.student.batch %}
+                        <span class="badge bg-primary">{{ item.student.batch.year }} ({{ item.student.batch.code }})</span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
                     <td>Sem {{ item.student.semester }}</td>
                     <td>{{ item.total }}</td>
                     <td>{{ item.present }}</td>
@@ -56,7 +82,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7">
+                    <td colspan="8">
                         <div class="empty-state">
                             <i class="bi bi-people"></i>
                             <h6>No students enrolled</h6>
