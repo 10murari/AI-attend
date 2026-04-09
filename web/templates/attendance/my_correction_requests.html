@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}My Correction Requests - AI-ATTEND{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h4><i class="bi bi-journal-text"></i> My Correction Requests</h4>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Subject</th>
+                        <th>Session Date</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Teacher Comment</th>
+                        <th>Submitted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in correction_requests %}
+                    <tr>
+                        <td>
+                            <strong>{{ req.attendance.session.subject.code }}</strong><br>
+                            <small class="text-muted">{{ req.attendance.session.subject.name }}</small>
+                        </td>
+                        <td>{{ req.attendance.session.date|date:"d M Y" }}</td>
+                        <td style="max-width: 320px; white-space: normal;">{{ req.reason }}</td>
+                        <td>
+                            {% if req.status == 'pending' %}
+                            <span class="badge text-bg-warning">Pending</span>
+                            {% elif req.status == 'approved' %}
+                            <span class="badge text-bg-success">Approved</span>
+                            {% elif req.status == 'rejected' %}
+                            <span class="badge text-bg-danger">Rejected</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">{{ req.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.teacher_comment %}
+                                {{ req.teacher_comment }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ req.created_at|date:"d M Y, H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                No correction requests yet.
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

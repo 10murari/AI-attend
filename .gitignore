@@ -27,7 +27,7 @@ dataset/enrollment/faces_aligned/
 dataset/cctv_footage/
 dataset/enrollment/embeddings/
 dataset/enrollment/gallery/
-
+web/staticfiles/
 
 
 

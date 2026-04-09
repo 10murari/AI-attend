@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+
+{% block title %}Correction Requests - AI-ATTEND{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-list-check"></i> Attendance Correction Requests</h4>
+    <p class="text-muted mb-0">Review and respond to student correction requests.</p>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h4 class="mb-1">{{ pending_count }}</h4>
+                <small class="text-muted">Pending Requests</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h4 class="mb-1">{{ approved_count }}</h4>
+                <small class="text-muted">Approved</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h4 class="mb-1">{{ rejected_count }}</h4>
+                <small class="text-muted">Rejected</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h4 class="mb-1">{{ total_count }}</h4>
+                <small class="text-muted">Total</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label for="statusFilter" class="form-label mb-1">Filter by Status</label>
+                <select class="form-select form-select-sm" id="statusFilter" onchange="filterRequests()">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="searchInput" class="form-label mb-1">Search Student</label>
+                <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Roll no or name..." oninput="filterRequests()">
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted" id="resultSummary">Showing all requests</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle" id="requestsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Date</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in correction_requests %}
+                    <tr class="request-row"
+                        data-status="{{ req.status }}"
+                        data-student="{{ req.student.full_name|default:req.student.username|lower }}"
+                        data-roll="{{ req.student.roll_no|default:''|lower }}">
+                        <td>
+                            <strong>{{ req.student.full_name|default:req.student.username }}</strong><br>
+                            <small class="text-muted">{{ req.student.roll_no }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ req.attendance.session.subject.code }}</strong><br>
+                            <small class="text-muted">{{ req.attendance.session.subject.name }}</small>
+                        </td>
+                        <td>{{ req.attendance.session.date|date:"d M Y" }}</td>
+                        <td style="max-width: 320px; white-space: normal;">{{ req.reason }}</td>
+                        <td>
+                            {% if req.status == 'pending' %}
+                            <span class="badge text-bg-warning">Pending</span>
+                            {% elif req.status == 'approved' %}
+                            <span class="badge text-bg-success">Approved</span>
+                            {% elif req.status == 'rejected' %}
+                            <span class="badge text-bg-danger">Rejected</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">{{ req.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ req.created_at|date:"d M Y, H:i" }}</td>
+                        <td>
+                            {% if req.status == 'pending' %}
+                            <button class="btn btn-primary btn-sm"
+                                    onclick="openResponseModal({{ req.id }}, '{{ req.student.full_name|default:req.student.username|escapejs }}', '{{ req.student.roll_no|default:''|escapejs }}', '{{ req.attendance.session.subject.code|escapejs }}', '{{ req.attendance.session.date|date:'Y-m-d' }}', '{{ req.reason|escapejs }}')">
+                                Respond
+                            </button>
+                            {% else %}
+                            <span class="text-muted small">Reviewed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr id="emptyRow">
+                        <td colspan="7">
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                No correction requests yet.
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="responseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Respond to Correction Request</h5>
+                <button type="button" class="btn-close" onclick="closeResponseModal()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="card bg-light mb-3">
+                    <div class="card-body">
+                        <p class="mb-1"><strong>Student:</strong> <span id="detailStudent"></span></p>
+                        <p class="mb-1"><strong>Subject:</strong> <span id="detailSubject"></span></p>
+                        <p class="mb-2"><strong>Date:</strong> <span id="detailDate"></span></p>
+                        <p class="mb-1"><strong>Reason:</strong></p>
+                        <p class="mb-0 text-muted" id="detailReason"></p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Decision</label>
+                    <div class="form-check">
+                        <input type="radio" name="decision" value="approve" class="form-check-input" id="decisionApprove" onchange="toggleCorrectionStatus()">
+                        <label class="form-check-label" for="decisionApprove">Approve Request</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="radio" name="decision" value="reject" class="form-check-input" id="decisionReject" onchange="toggleCorrectionStatus()">
+                        <label class="form-check-label" for="decisionReject">Reject Request</label>
+                    </div>
+                </div>
+
+                <div id="correctionStatusDiv" class="mb-3" style="display: none;">
+                    <label for="correctedStatus" class="form-label fw-semibold">Change Status To</label>
+                    <select class="form-select" id="correctedStatus">
+                        <option value="">Select status...</option>
+                        <option value="PRESENT">Present</option>
+                        <option value="LATE">Late</option>
+                    </select>
+                </div>
+
+                <div class="mb-0">
+                    <label for="commentInput" class="form-label fw-semibold">Comment/Reason</label>
+                    <textarea class="form-control" id="commentInput" rows="4" placeholder="Enter your comment..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" onclick="closeResponseModal()">Cancel</button>
+                <button class="btn btn-primary" id="submitResponseBtn" onclick="submitResponse()">Submit Response</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentRequestId = null;
+    let responseModalInstance = null;
+
+    function getResponseModalInstance() {
+        if (!responseModalInstance) {
+            responseModalInstance = new bootstrap.Modal(document.getElementById('responseModal'));
+        }
+        return responseModalInstance;
+    }
+
+    function openResponseModal(requestId, studentName, rollNo, subject, date, reason) {
+        currentRequestId = requestId;
+        document.getElementById('detailStudent').textContent = `${studentName} (${rollNo})`;
+        document.getElementById('detailSubject').textContent = subject;
+        document.getElementById('detailDate').textContent = new Date(date).toLocaleDateString();
+        document.getElementById('detailReason').textContent = reason;
+        document.getElementById('commentInput').value = '';
+        document.getElementById('correctedStatus').value = '';
+        document.getElementById('correctionStatusDiv').style.display = 'none';
+        document.querySelectorAll('input[name="decision"]').forEach(r => r.checked = false);
+
+        getResponseModalInstance().show();
+    }
+
+    function closeResponseModal() {
+        getResponseModalInstance().hide();
+        currentRequestId = null;
+    }
+
+    function toggleCorrectionStatus() {
+        const selected = document.querySelector('input[name="decision"]:checked');
+        const decision = selected ? selected.value : '';
+        document.getElementById('correctionStatusDiv').style.display = decision === 'approve' ? 'block' : 'none';
+    }
+
+    async function submitResponse() {
+        const decision = document.querySelector('input[name="decision"]:checked');
+        const comment = document.getElementById('commentInput').value.trim();
+
+        if (!decision) {
+            alert('Please select approve or reject');
+            return;
+        }
+        if (!comment) {
+            alert('Please enter a comment');
+            return;
+        }
+
+        const endpoint = decision.value === 'approve'
+            ? `{% url 'approve_correction_request' 0 %}`.replace('/0/approve/', `/${currentRequestId}/approve/`)
+            : `{% url 'reject_correction_request' 0 %}`.replace('/0/reject/', `/${currentRequestId}/reject/`);
+
+        const body = { comment: comment };
+
+        if (decision.value === 'approve') {
+            const correctedStatus = document.getElementById('correctedStatus').value;
+            if (!correctedStatus) {
+                alert('Please select corrected status');
+                return;
+            }
+            body.corrected_status = correctedStatus;
+        }
+
+        const submitBtn = document.getElementById('submitResponseBtn');
+        submitBtn.disabled = true;
+        const originalLabel = submitBtn.textContent;
+        submitBtn.textContent = 'Submitting...';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(body)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                closeResponseModal();
+                location.reload();
+            } else {
+                alert(data.error || 'Error processing request');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalLabel;
+        }
+    }
+
+    function filterRequests() {
+        const status = document.getElementById('statusFilter').value.toLowerCase();
+        const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+
+        let visibleCount = 0;
+        document.querySelectorAll('.request-row').forEach((row) => {
+            const rowStatus = row.dataset.status || '';
+            const studentName = row.dataset.student || '';
+            const rollNo = row.dataset.roll || '';
+
+            const statusMatch = !status || rowStatus === status;
+            const searchMatch = !keyword || studentName.includes(keyword) || rollNo.includes(keyword);
+
+            const show = statusMatch && searchMatch;
+            row.style.display = show ? '' : 'none';
+            if (show) {
+                visibleCount += 1;
+            }
+        });
+
+        const emptyRow = document.getElementById('emptyRow');
+        if (emptyRow) {
+            emptyRow.style.display = visibleCount === 0 ? '' : 'none';
+        }
+
+        document.getElementById('resultSummary').textContent = `Showing ${visibleCount} request${visibleCount === 1 ? '' : 's'}`;
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        filterRequests();
+    });
+</script>
+{% endblock %}
