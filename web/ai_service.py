@@ -10,6 +10,7 @@ import sys
 import numpy as np
 import threading
 import logging
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +60,14 @@ class AIService:
                 from insightface.app import FaceAnalysis
 
                 self.app = FaceAnalysis(
-                    name='buffalo_l',
+                    name=getattr(settings, 'INSIGHTFACE_MODEL', 'buffalo_l'),
                     providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
                 )
-                self.app.prepare(ctx_id=0, det_size=(640, 640), det_thresh=0.5)
+                self.app.prepare(
+                    ctx_id=0,
+                    det_size=getattr(settings, 'DET_SIZE', (640, 640)),
+                    det_thresh=getattr(settings, 'DET_THRESH', 0.5),
+                )
                 logger.info("InsightFace model loaded successfully.")
             except Exception as e:
                 logger.error(f"Failed to load InsightFace: {e}")
@@ -132,7 +137,7 @@ class AIService:
             'intra_sim_std': float(np.std(similarities)),
         }
 
-    def recognize(self, embedding, gallery, threshold=0.45):
+    def recognize(self, embedding, gallery, threshold=None):
         """
         Match an embedding against the gallery.
 
@@ -147,6 +152,9 @@ class AIService:
         """
         if not gallery:
             return None
+
+        if threshold is None:
+            threshold = getattr(settings, 'RECOGNITION_THRESHOLD', 0.45)
 
         best_match = None
         best_sim = -1
