@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 | Lost in the Attendance Dimension</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #111827;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --accent: #22d3ee;
+            --accent-hover: #67e8f9;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at 20% 20%, #1e293b 0%, #0b1120 45%, #020617 100%);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            overflow: hidden;
+        }
+
+        .card {
+            width: min(720px, 100%);
+            background: rgba(17, 24, 39, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            animation: fadeInUp 0.75s ease-out;
+            position: relative;
+            z-index: 2;
+        }
+
+        .code {
+            font-size: clamp(52px, 10vw, 120px);
+            line-height: 1;
+            margin: 0;
+            letter-spacing: 2px;
+            font-weight: 800;
+            color: var(--warning);
+            text-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+            animation: pulseGlow 2.6s ease-in-out infinite;
+        }
+
+        h1 {
+            margin: 14px 0 8px;
+            font-size: clamp(24px, 4vw, 34px);
+            font-weight: 700;
+        }
+
+        p {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--muted);
+        }
+
+        .joke {
+            margin: 18px 0;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px dashed rgba(148, 163, 184, 0.35);
+            color: #cbd5e1;
+        }
+
+        .actions {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #042f2e;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(34, 211, 238, 0.25);
+        }
+
+        .btn-secondary {
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            border-color: rgba(34, 211, 238, 0.7);
+            color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .small {
+            margin-top: 18px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .float {
+            position: fixed;
+            font-size: clamp(20px, 3vw, 32px);
+            opacity: 0.22;
+            user-select: none;
+            pointer-events: none;
+            z-index: 1;
+            animation: driftY 5s ease-in-out infinite;
+        }
+
+        .float-a {
+            top: 14%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .float-b {
+            top: 70%;
+            left: 12%;
+            animation-delay: 1.2s;
+        }
+
+        .float-c {
+            top: 20%;
+            right: 11%;
+            animation-delay: 0.8s;
+        }
+
+        .float-d {
+            top: 72%;
+            right: 14%;
+            animation-delay: 2s;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px) scale(0.99);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                transform: translateY(0);
+                text-shadow: 0 0 14px rgba(245, 158, 11, 0.22);
+            }
+            50% {
+                transform: translateY(-2px);
+                text-shadow: 0 0 30px rgba(245, 158, 11, 0.4);
+            }
+        }
+
+        @keyframes driftY {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-10px) rotate(5deg);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <span class="float float-a">🎓</span>
+    <span class="float float-b">📚</span>
+    <span class="float float-c">🧭</span>
+    <span class="float float-d">🛸</span>
+
+    <main class="card">
+        <p class="code">404</p>
+        <h1>Oops. This page bunked class.</h1>
+        <p>
+            We checked attendance, but this URL is marked <strong>absent</strong>.
+            It might have moved, retired, or never existed in this universe.
+        </p>
+
+        <p class="joke">"Teacher: Why are you late?"<br>"Me: I took the wrong URL to school."</p>
+
+        <div class="actions">
+            <a class="btn btn-primary" href="/">Take me home</a>
+            <a class="btn btn-secondary" href="javascript:history.back()">Go back</a>
+        </div>
+
+        <p class="small">If this keeps happening, please contact the admin.</p>
+    </main>
+</body>
+</html>

@@ -59,6 +59,19 @@ def reports_page(request):
             department_id__in=teacher_department_ids,
             is_active=True,
         ).order_by('department__code', '-year')
+        assignment_scopes = list(
+            assignments.values_list('subject__department_id', 'subject__semester').distinct()
+        )
+        if assignment_scopes:
+            student_scope_filter = Q()
+            for department_id, semester in assignment_scopes:
+                student_scope_filter |= Q(department_id=department_id, semester=semester)
+            context['teacher_students'] = CustomUser.objects.filter(
+                role='student',
+                is_active=True,
+            ).filter(student_scope_filter).select_related('department', 'batch').distinct().order_by('roll_no')
+        else:
+            context['teacher_students'] = CustomUser.objects.none()
     elif user.role == 'student':
         context['report_type'] = 'student'
 
@@ -73,6 +86,7 @@ def export_report_csv(request):
     date_to = request.GET.get('date_to', '')
     dept_id = request.GET.get('department', '')
     subject_id = request.GET.get('subject', '')
+    student_id = request.GET.get('student', '')
     batch_id = request.GET.get('batch', '')
     report_type = request.GET.get('type', 'attendance')
 
@@ -160,7 +174,10 @@ def export_report_csv(request):
             sessions = sessions.filter(department=user.department)
 
         for session in sessions:
-            for record in session.records.select_related('student').order_by('student__roll_no'):
+            records_qs = session.records.select_related('student').order_by('student__roll_no')
+            if student_id:
+                records_qs = records_qs.filter(student_id=student_id)
+            for record in records_qs:
                 writer.writerow([
                     session.date, session.subject.code, session.teacher.full_name,
                     session.department.code, str(session.batch) if session.batch else '-', session.semester,

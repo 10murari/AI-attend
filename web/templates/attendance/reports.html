@@ -184,6 +184,12 @@
                         <option value="{{ a.subject.id }}">{{ a.subject.code }} - {{a.subject.name }}</option>
                         {% endfor %}
                     </select>
+                    <select name="student" class="form-select form-select-sm mb-2" style="max-width:300px">
+                        <option value="">All Students</option>
+                        {% for s in teacher_students %}
+                        <option value="{{ s.id }}">{{ s.roll_no }} - {{ s.full_name }}</option>
+                        {% endfor %}
+                    </select>
                     <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
                         Download CSV</button>
                 </form>

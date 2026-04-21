@@ -169,7 +169,6 @@ def enroll_process(request):
         photo_path = ''
         if best_face_img is not None:
             import os
-            from django.conf import settings
             photo_dir = os.path.join(settings.MEDIA_ROOT, 'faces', student.roll_no)
             os.makedirs(photo_dir, exist_ok=True)
             photo_filename = f'{student.roll_no}_ref.jpg'
