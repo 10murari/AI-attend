@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Department Students — AttendAI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-people-fill"></i> {{ department.name }} — Students</h4>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Semester</th>
+                    <th>Sessions</th>
+                    <th>Present</th>
+                    <th>Attendance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in student_data %}
+                <tr>
+                    <td class="text-muted">{{ forloop.counter }}</td>
+                    <td><strong>{{ item.student.roll_no }}</strong></td>
+                    <td>{{ item.student.full_name }}</td>
+                    <td>Sem {{ item.student.semester }}</td>
+                    <td>{{ item.total }}</td>
+                    <td>{{ item.present }}</td>
+                    <td>
+                        {% if item.total > 0 %}
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" style="height: 8px; max-width: 120px;">
+                                <div class="progress-bar
+                                        {% if item.percentage >= 75 %}progress-good
+                                        {% elif item.percentage >= 60 %}progress-avg
+                                        {% else %}progress-low{% endif %}" style="width: {{ item.percentage }}%">
+                                </div>
+                            </div>
+                            <strong class="
+                                    {% if item.percentage >= 75 %}pct-good
+                                    {% elif item.percentage >= 60 %}pct-avg
+                                    {% else %}pct-low{% endif %}">
+                                {{ item.percentage }}%
+                            </strong>
+                            {% if item.percentage < 75 %} <i class="bi bi-exclamation-triangle text-danger"
+                                title="Below 75%"></i>
+                                {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="bi bi-people"></i>
+                            <h6>No students enrolled</h6>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

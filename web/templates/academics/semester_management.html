@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Semester Management{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-mortarboard"></i> Semester Management</h4>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <strong>How it works:</strong> Promote moves all students in a semester to the next one.
+    Graduate archives Semester 8 students (deactivates accounts, preserves data).
+</div>
+
+{% for item in dept_data %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h6><span class="badge bg-dark">{{ item.dept.code }}</span> {{ item.dept.name }}</h6>
+    </div>
+    <div class="card-body">
+
+        {% if item.semesters %}
+
+        <!-- SEMESTER COLUMN LAYOUT -->
+        <div class="row g-3">
+
+            {% for sem, count in item.semesters.items %}
+            <div class="col-auto text-center d-flex flex-column align-items-center">
+
+                <!-- Semester Box -->
+                <div class="border rounded p-2 mb-2" style="min-width:80px">
+                    <div class="text-muted small">Sem {{ sem }}</div>
+                    <div class="fw-bold fs-5">{{ count }}</div>
+                    <div class="text-muted" style="font-size:0.7rem">students</div>
+                </div>
+
+                <!-- Promote Button -->
+                {% if sem < 8 %} <form method="post" action="{% url 'promote_semester' %}"
+                    onsubmit="return confirm('Promote {{ count }} students from Sem {{ sem }} to Sem {{ sem|add:1 }} in {{ item.dept.code }}?')">
+                    {% csrf_token %}
+                    <input type="hidden" name="department" value="{{ item.dept.id }}">
+                    <input type="hidden" name="from_semester" value="{{ sem }}">
+                    <button class="btn btn-outline-primary btn-sm btn-icon w-100">
+                        <i class="bi bi-arrow-up-circle"></i> Promote
+                    </button>
+                    </form>
+                    {% endif %}
+
+                    <!-- Graduate Button -->
+                    {% if sem == 8 %}
+                    <form method="post" action="{% url 'graduate_students' %}"
+                        onsubmit="return confirm('Graduate {{ count }} Semester 8 students from {{ item.dept.code }}? They will be deactivated.')">
+                        {% csrf_token %}
+                        <input type="hidden" name="department" value="{{ item.dept.id }}">
+                        <button class="btn btn-outline-danger btn-sm btn-icon w-100">
+                            <i class="bi bi-mortarboard"></i> Graduate
+                        </button>
+                    </form>
+                    {% endif %}
+
+            </div>
+            {% endfor %}
+
+        </div>
+
+        {% else %}
+        <p class="text-muted mb-0">No active students in this department.</p>
+        {% endif %}
+
+    </div>
+</div>
+{% empty %}
+<div class="card">
+    <div class="card-body">
+        <div class="empty-state">
+            <i class="bi bi-mortarboard"></i>
+            <h6>No departments</h6>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

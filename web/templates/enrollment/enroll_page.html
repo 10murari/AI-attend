@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Face Enrollment{% endblock %}
+
+{% block extra_css %}
+<style>
+    .webcam-container {
+        position: relative;
+        background: #000;
+        border-radius: var(--radius);
+        overflow: hidden;
+        aspect-ratio: 4/3;
+    }
+
+    .webcam-container video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    #captureCanvas {
+        display: none;
+    }
+
+    .frame-counter {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .enrollment-result {
+        padding: 1.25rem;
+        border-radius: var(--radius);
+        margin-top: 1rem;
+    }
+
+    .student-item {
+        cursor: pointer;
+        transition: all 0.15s ease;
+        border-bottom: 1px solid var(--card-border);
+        padding: 0.75rem 1rem;
+    }
+
+    .student-item:hover {
+        background: #f8f9fa;
+    }
+
+    .student-item.selected {
+        background: var(--primary-light);
+        border-left: 3px solid var(--primary);
+    }
+
+    .student-item.hidden {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-camera-video-fill"></i> Face Enrollment</h4>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-camera-video"></i> Webcam Capture</h6>
+                <span id="statusBadge" class="badge bg-secondary">Not started</span>
+            </div>
+            <div class="card-body">
+                <div class="webcam-container mb-3" id="webcamContainer">
+                    <video id="webcamVideo" autoplay playsinline muted></video>
+                    <canvas id="captureCanvas"></canvas>
+                    <div class="frame-counter" id="frameCounter" style="display:none">
+                        <i class="bi bi-camera"></i> <span id="frameCount">0</span> / <span id="frameTotal">15</span>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap mb-3">
+                    <button id="btnStart" class="btn btn-primary btn-icon" disabled onclick="startCamera()">
+                        <i class="bi bi-camera-video"></i> Start Camera
+                    </button>
+                    <button id="btnCapture" class="btn btn-success btn-icon" disabled onclick="captureFrames()">
+                        <i class="bi bi-record-circle"></i> Capture Frames
+                    </button>
+                    <button id="btnEnroll" class="btn btn-primary btn-icon" disabled style="display:none"
+                        onclick="enrollStudent()">
+                        <i class="bi bi-upload"></i> Enroll
+                    </button>
+                    <button id="btnStop" class="btn btn-outline-secondary btn-icon" disabled onclick="stopCamera()">
+                        <i class="bi bi-stop-circle"></i> Stop
+                    </button>
+                </div>
+
+                <div class="alert alert-info small mb-0">
+                    <i class="bi bi-info-circle"></i> <strong>Steps:</strong>
+                    1. Select student &rarr; 2. Start Camera &rarr; 3. Capture Frames (turn head slowly) &rarr; 4.
+                    Enroll
+                </div>
+
+                <div id="enrollResult" style="display:none"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-person-check"></i> Select Student</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="p-2 border-bottom">
+                    <input type="text" id="studentSearch" class="form-control form-control-sm"
+                        placeholder="Search by roll no or name..." oninput="filterStudents()">
+                </div>
+                <div id="studentList" style="max-height:500px; overflow-y:auto;">
+                    {% for s in students %}
+                    <div class="student-item" id="student-{{ s.id }}" data-id="{{ s.id }}" data-roll="{{ s.roll_no }}"
+                        data-name="{{ s.name }}" data-dept="{{ s.department }}" data-sem="{{ s.semester }}"
+                        data-enrolled="{% if s.enrolled %}1{% else %}0{% endif %}" onclick="selectStudent(this)">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <div
+                                    style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;
+                                    {% if s.enrolled %}background:var(--success-light);color:var(--success);{% else %}background:#f0f2f5;color:var(--text-secondary);{% endif %}">
+                                    {{ s.name|first|upper }}
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>{{ s.roll_no }}</strong> &mdash; {{ s.name }}
+                                <br><small class="text-muted">{{ s.department }} | Sem {{ s.semester }}</small>
+                            </div>
+                            {% if s.enrolled %}
+                            <span class="badge badge-present"><i class="bi bi-check-circle"></i></span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3" id="selectedCard" style="display:none">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div style="width:50px;height:50px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem"
+                    id="selAvatar"></div>
+                <div>
+                    <strong id="selName"></strong><br>
+                    <code id="selRoll"></code>
+                    <span id="selStatus" class="ms-2"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedId = null;
+    let stream = null;
+    let frames = [];
+    const TOTAL = 15;
+    const INTERVAL = 350;
+
+    const video = document.getElementById('webcamVideo');
+    const canvas = document.getElementById('captureCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function filterStudents() {
+        const q = document.getElementById('studentSearch').value.toLowerCase().trim();
+        document.querySelectorAll('.student-item').forEach(el => {
+            const text = (el.dataset.roll + ' ' + el.dataset.name).toLowerCase();
+            if (q === '' || text.includes(q)) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        });
+    }
+
+    function selectStudent(el) {
+        document.querySelectorAll('.student-item').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedId = el.dataset.id;
+
+        document.getElementById('selectedCard').style.display = 'block';
+        document.getElementById('selName').textContent = el.dataset.name;
+        document.getElementById('selRoll').textContent = el.dataset.roll;
+        document.getElementById('selAvatar').textContent = el.dataset.name.charAt(0).toUpperCase();
+        document.getElementById('selStatus').innerHTML = el.dataset.enrolled === '1'
+            ? '<span class="badge badge-present">Enrolled</span>'
+            : '<span class="badge badge-absent">Not Enrolled</span>';
+
+        document.getElementById('btnStart').disabled = false;
+        document.getElementById('enrollResult').style.display = 'none';
+    }
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } });
+            video.srcObject = stream;
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('btnCapture').disabled = false;
+            document.getElementById('btnStop').disabled = false;
+            document.getElementById('statusBadge').textContent = 'Camera Ready';
+            document.getElementById('statusBadge').className = 'badge badge-active';
+            frames = [];
+        } catch (e) { alert('Camera error: ' + e.message); }
+    }
+
+    function captureFrames() {
+        frames = [];
+        document.getElementById('frameCount').textContent = '0';
+        document.getElementById('frameCounter').style.display = 'block';
+        document.getElementById('btnCapture').disabled = true;
+        document.getElementById('statusBadge').textContent = 'Capturing...';
+        document.getElementById('statusBadge').className = 'badge bg-warning text-dark';
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        let count = 0;
+
+        const iv = setInterval(() => {
+            if (count >= TOTAL) {
+                clearInterval(iv);
+                document.getElementById('statusBadge').textContent = frames.length + ' frames ready';
+                document.getElementById('statusBadge').className = 'badge badge-active';
+                document.getElementById('btnEnroll').style.display = '';
+                document.getElementById('btnEnroll').disabled = false;
+                document.getElementById('btnCapture').disabled = false;
+                return;
+            }
+            ctx.drawImage(video, 0, 0);
+            frames.push(canvas.toDataURL('image/jpeg', 0.85));
+            count++;
+            document.getElementById('frameCount').textContent = count;
+            video.style.opacity = '0.5';
+            setTimeout(() => { video.style.opacity = '1'; }, 100);
+        }, INTERVAL);
+    }
+
+    async function enrollStudent() {
+        if (!selectedId || frames.length === 0) return;
+        const btn = document.getElementById('btnEnroll');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+
+        try {
+            const res = await fetch('{% url "enroll_process" %}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ student_id: selectedId, frames: frames }),
+            });
+            const data = await res.json();
+            const rd = document.getElementById('enrollResult');
+
+            if (data.success) {
+                rd.innerHTML = '<div class="enrollment-result" style="background:var(--success-light);color:#0d6e64;"><h6><i class="bi bi-check-circle-fill"></i> ' + data.message + '</h6><small>Samples: ' + data.details.num_samples + ' | Quality: ' + data.details.quality_mean + '</small></div>';
+                const card = document.getElementById('student-' + selectedId);
+                if (card) card.dataset.enrolled = '1';
+                document.getElementById('selStatus').innerHTML = '<span class="badge badge-present">Enrolled</span>';
+            } else {
+                rd.innerHTML = '<div class="enrollment-result" style="background:var(--danger-light);color:#991b1b;"><h6><i class="bi bi-exclamation-triangle-fill"></i> Failed</h6><p class="mb-0">' + data.error + '</p></div>';
+            }
+            rd.style.display = 'block';
+        } catch (e) {
+            document.getElementById('enrollResult').innerHTML = '<div class="enrollment-result" style="background:var(--danger-light);color:#991b1b;">Error: ' + e.message + '</div>';
+            document.getElementById('enrollResult').style.display = 'block';
+        }
+
+        btn.innerHTML = '<i class="bi bi-upload"></i> Enroll';
+        btn.disabled = false;
+        frames = [];
+        document.getElementById('frameCounter').style.display = 'none';
+    }
+
+    function stopCamera() {
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        video.srcObject = null;
+        document.getElementById('btnStart').disabled = false;
+        document.getElementById('btnCapture').disabled = true;
+        document.getElementById('btnEnroll').disabled = true;
+        document.getElementById('btnEnroll').style.display = 'none';
+        document.getElementById('btnStop').disabled = true;
+        document.getElementById('frameCounter').style.display = 'none';
+        document.getElementById('statusBadge').textContent = 'Stopped';
+        document.getElementById('statusBadge').className = 'badge bg-secondary';
+    }
+</script>
+{% endblock %}

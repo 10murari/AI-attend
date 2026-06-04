@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-file-earmark-bar-graph"></i> Reports &amp; Export</h4>
+</div>
+
+<!-- Date Range Filter -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h6><i class="bi bi-calendar-range"></i> Date Range</h6>
+    </div>
+    <div class="card-body">
+        <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
+            <div>
+                <label class="form-label">From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+            </div>
+            <div>
+                <label class="form-label">To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm btn-icon"><i class="bi bi-funnel"></i> Filter</button>
+        </form>
+    </div>
+</div>
+
+<!-- Report Cards -->
+<div class="row g-3">
+
+    {% if report_type == 'admin' %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-people"></i> Student Attendance Summary</h6>
+                <p class="text-muted small">All students with attendance percentage for the selected date range.</p>
+                <form method="get" action="{% url 'export_report_csv' %}"
+                    class="d-flex gap-2 align-items-end flex-wrap">
+                    <input type="hidden" name="date_from" value="{{ date_from }}">
+                    <input type="hidden" name="date_to" value="{{ date_to }}">
+                    <input type="hidden" name="type" value="student_summary">
+                    <select name="department" class="form-select form-select-sm" style="max-width:200px">
+                        <option value="">All Departments</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}">{{ d.code }} - {{ d.name }}</option>
+                        {%endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
+                        Download CSV</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-calendar-check"></i> Session Detail Report</h6>
+                <p class="text-muted small">Every attendance record for every session in the date range.</p>
+                <form method="get" action="{% url 'export_report_csv' %}"
+                    class="d-flex gap-2 align-items-end flex-wrap">
+                    <input type="hidden" name="date_from" value="{{ date_from }}">
+                    <input type="hidden" name="date_to" value="{{ date_to }}">
+                    <input type="hidden" name="type" value="session_detail">
+                    <select name="department" class="form-select form-select-sm" style="max-width:200px">
+                        <option value="">All Departments</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}">{{ d.code }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
+                        Download CSV</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-bar-chart"></i> Subject Attendance Summary</h6>
+                <p class="text-muted small">Average attendance rate per subject.</p>
+                <form method="get" action="{% url 'export_report_csv' %}"
+                    class="d-flex gap-2 align-items-end flex-wrap">
+                    <input type="hidden" name="date_from" value="{{ date_from }}">
+                    <input type="hidden" name="date_to" value="{{ date_to }}">
+                    <input type="hidden" name="type" value="attendance">
+                    <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
+                        Download CSV</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if report_type == 'hod' %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-people"></i> Department Student Summary</h6>
+                <p class="text-muted small">All {{ department.name }} students with attendance %.</p>
+                <form method="get" action="{% url 'export_report_csv' %}">
+                    <input type="hidden" name="date_from" value="{{ date_from }}">
+                    <input type="hidden" name="date_to" value="{{ date_to }}">
+                    <input type="hidden" name="type" value="student_summary">
+                    <input type="hidden" name="department" value="{{ department.id }}">
+                    <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
+                        Download CSV</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-calendar-check"></i> Session Detail Report</h6>
+                <p class="text-muted small">All session records for {{ department.code }}.</p>
+                <form method="get" action="{% url 'export_report_csv' %}">
+                    <input type="hidden" name="date_from" value="{{ date_from }}">
+                    <input type="hidden" name="date_to" value="{{ date_to }}">
+                    <input type="hidden" name="type" value="session_detail">
+                    <input type="hidden" name="department" value="{{ department.id }}">
+                    <select name="subject" class="form-select form-select-sm mb-2" style="max-width:250px">
+                        <option value="">All Subjects</option>
+                        {% for s in subjects %}
+                        <option value="{{ s.id }}">{{ s.code }} - {{ s.name }}</option>
+                        {% endfor%}
+                    </select>
+                    <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
+                        Download CSV</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if report_type == 'teacher' %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-calendar-check"></i> My Sessions Report</h6>
+                <p class="text-muted small">All your attendance session records.</p>
+                <form method="get" action="{% url 'export_report_csv' %}">
+                    <input type="hidden" name="date_from" value="{{ date_from }}">
+                    <input type="hidden" name="date_to" value="{{ date_to }}">
+                    <input type="hidden" name="type" value="session_detail">
+                    <select name="subject" class="form-select form-select-sm mb-2" style="max-width:250px">
+                        <option value="">All Subjects</option>
+                        {% for a in assignments %}
+                        <option value="{{ a.subject.id }}">{{ a.subject.code }} - {{a.subject.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
+                        Download CSV</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if report_type == 'student' %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-person-check"></i> My Attendance Report</h6>
+                <p class="text-muted small">Your personal attendance records.</p>
+                <form method="get" action="{% url 'export_report_csv' %}">
+                    <input type="hidden" name="date_from" value="{{ date_from }}">
+                    <input type="hidden" name="date_to" value="{{ date_to }}">
+                    <input type="hidden" name="type" value="my_attendance">
+                    <button type="submit" class="btn btn-success btn-sm btn-icon"><i class="bi bi-download"></i>
+                        Download CSV</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

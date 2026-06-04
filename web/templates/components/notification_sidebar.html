@@ -1,0 +1,13 @@
+<li>
+    <a class="nav-link {% if 'notifications' in request.path %}active{% endif %} notification-sidebar-link"
+       href="{% url 'all_notifications' %}">
+        <i class="bi bi-bell-fill"></i>
+        Notifications
+        <span class="badge bg-danger ms-auto"
+              id="notificationBadge"
+              data-notification-badge
+              style="display: none;">
+            0
+        </span>
+    </a>
+</li>

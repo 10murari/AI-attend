@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}My Subjects — AttendAI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-journal-text"></i> My Subjects</h4>
+</div>
+
+{% if not subjects_data %}
+<div class="card">
+    <div class="card-body">
+        <div class="empty-state">
+            <i class="bi bi-journal-x"></i>
+            <h6>No subjects assigned</h6>
+            <p>Contact admin to get subjects assigned to you.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    {% for item in subjects_data %}
+    <div class="col-md-6">
+        <div class="subject-card">
+            <div class="subject-header">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="subject-name">{{ item.subject.name }}</h5>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <span class="badge bg-dark">{{ item.subject.code }}</span>
+                            <span class="badge" style="background: var(--primary-light); color: var(--primary);">
+                                Semester {{ item.subject.semester }}
+                            </span>
+                            <span class="badge" style="background: var(--info-light); color: var(--info);">
+                                {{ item.subject.department.code }}
+                            </span>
+                        </div>
+                    </div>
+                    {% if item.active_session %}
+                    <span class="badge badge-active">
+                        <span class="session-active-pulse"></span> LIVE
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="subject-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="text-muted small">Students</div>
+                        <div class="fw-bold fs-5">{{ item.student_count }}</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-muted small">Sessions</div>
+                        <div class="fw-bold fs-5">{{ item.total_sessions }}</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-muted small">Credits</div>
+                        <div class="fw-bold fs-5">{{ item.subject.credit_hours }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subject-actions">
+                {% if item.active_session %}
+                <a href="{% url 'session_detail' item.active_session.id %}" class="btn btn-success btn-sm btn-icon">
+                    <i class="bi bi-broadcast"></i> View Live Session
+                </a>
+                {% else %}
+                <a href="{% url 'start_session' item.subject.id %}" class="btn btn-primary btn-sm btn-icon">
+                    <i class="bi bi-play-circle"></i> Start Attendance
+                </a>
+                {% endif %}
+                <a href="{% url 'session_history' %}?subject={{ item.subject.id }}"
+                    class="btn btn-outline-secondary btn-sm btn-icon">
+                    <i class="bi bi-clock-history"></i> History
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

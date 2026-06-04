@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Session Details - AI-ATTEND{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-journal-check"></i> Session Detail</h4>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <h4 class="mb-1">{{ session.subject.name }}</h4>
+                        <div class="text-muted">
+                            <span class="badge bg-dark me-2">{{ session.subject.code }}</span>
+                            {{ session.date|date:"M d, Y" }}
+                            |{% if session.start_time %}{{ session.start_time|time:"H:i" }}{% else %}-{% endif %}
+                            To {% if session.end_time %}{{ session.end_time|time:"H:i" }}{% else %}In progress{% endif %}
+                            {% if session_duration_minutes is not None %}
+                            |Duration {{ session_duration_minutes }} min
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="badge badge-{{ session.status|lower }} fs-6">
+                        {{ session.get_status_display }}
+                    </span>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 h-100 bg-light">
+                            <small class="text-muted d-block">Department</small>
+                            <strong>{{ session.department.name }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 h-100 bg-light">
+                            <small class="text-muted d-block">Teacher</small>
+                            <strong>{{ session.teacher.full_name|default:session.teacher.username }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 h-100 bg-light">
+                            <small class="text-muted d-block">Attendance Summary</small>
+                            <strong>{{ session.total_present }} Present, {{ session.total_late }} Late, {{ session.total_absent }} Absent</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Your Attendance</h5>
+
+                {% if attendance %}
+                <div class="mb-3">
+                    {% if attendance.status == 'PRESENT' %}
+                    <span class="badge bg-success fs-6">✓ PRESENT</span>
+                    {% elif attendance.status == 'LATE' %}
+                    <span class="badge bg-warning text-dark fs-6">⏰ LATE</span>
+                    {% else %}
+                    <span class="badge bg-danger fs-6">✗ ABSENT</span>
+                    {% endif %}
+                </div>
+
+                <div class="mb-2">
+                    <small class="text-muted d-block">Marked by</small>
+                    <strong>{{ attendance.get_marked_by_display }}</strong>
+                </div>
+
+                <div class="mb-3">
+                    <small class="text-muted d-block">Marked at</small>
+                    <strong>
+                        {% if attendance.time_marked %}
+                        {{ attendance.time_marked|time:"H:i" }}
+                        {% else %}
+                        Not recorded
+                        {% endif %}
+                    </strong>
+                </div>
+
+                {% if attendance.status == 'ABSENT' and request_window_open %}
+                    {% if correction_request %}
+                    <div class="alert alert-info mb-0">
+                        <strong>Correction request {{ correction_request.get_status_display|lower }}</strong>
+                        <div class="small mt-1">
+                            Submitted {{ correction_request.created_at|date:"M d, Y H:i" }}
+                        </div>
+                        {% if correction_request.status == 'approved' %}
+                        <div class="small mt-2">Approved: {{ correction_request.get_corrected_status_display }}</div>
+                        {% elif correction_request.status == 'rejected' %}
+                        <div class="small mt-2">Rejected: {{ correction_request.teacher_comment }}</div>
+                        {% else %}
+                        <div class="small mt-2">Your teacher is reviewing this request.</div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <button class="btn btn-primary w-100" onclick="openCorrectionRequestModal({{ attendance.id }})">
+                        Request Attendance Correction
+                    </button>
+                    <div class="small text-muted mt-2">
+                        You can request correction within {{ request_window_hours|floatformat:1 }} hours of session end.
+                    </div>
+                    {% endif %}
+                {% elif attendance.status == 'ABSENT' and not request_window_open %}
+                <div class="alert alert-warning mb-0">
+                    <strong>Request Period Closed</strong>
+                    <div class="small mt-1">The correction window has ended.</div>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="alert alert-secondary mb-0">
+                    This page shows the student's session attendance and correction request options.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Attendance Register</h5>
+        <span class="text-muted small">{{ session.total_students }} record{{ session.total_students|pluralize }}</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Time</th>
+                        <th>Confidence</th>
+                        <th>Marked By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in records %}
+                    <tr>
+                        <td class="font-mono">{{ rec.student.roll_no }}</td>
+                        <td>{{ rec.student.full_name }}</td>
+                        <td>
+                            {% if rec.status == 'PRESENT' %}
+                            <span class="badge bg-success">PRESENT</span>
+                            {% elif rec.status == 'LATE' %}
+                            <span class="badge bg-warning text-dark">LATE</span>
+                            {% elif rec.status == 'ABSENT' %}
+                            <span class="badge bg-danger">ABSENT</span>
+                            {% elif rec.status %}
+                            <span class="badge bg-secondary">{{ rec.status }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">NOT MARKED</span>
+                            {% endif %}
+                        </td>
+                        <td>{% if rec.time_marked %}{{ rec.time_marked|time:"H:i" }}{% else %}-{% endif %}</td>
+                        <td>{% if rec.confidence is not None %}{{ rec.confidence|floatformat:3 }}{% else %}-{% endif %}</td>
+                        <td>{{ rec.get_marked_by_display }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="text-center py-4 text-muted">
+                                No attendance records found for this session.
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Correction Request Modal -->
+<div class="modal fade" id="correctionRequestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Request Attendance Correction</h5>
+                <button type="button" class="btn-close" aria-label="Close" onclick="closeCorrectionRequestModal()"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <strong>Important</strong>
+                    <div class="small mt-1">Your teacher will review your request and approve or reject it within the allowed correction window.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="reasonInput" class="form-label fw-semibold">Reason for Absence</label>
+                    <textarea class="form-control"
+                              placeholder="Explain why you were absent and why you should be marked present/late..."
+                              id="reasonInput" rows="6" maxlength="500"></textarea>
+                    <div class="d-flex justify-content-between mt-1">
+                        <small class="text-muted">Max 500 characters</small>
+                        <small class="text-muted" id="charCount">0/500</small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Supporting Evidence (Optional)</label>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="hasProof">
+                        <label class="form-check-label" for="hasProof">I have supporting documents/proof</label>
+                    </div>
+                    <div class="form-check mt-1">
+                        <input type="checkbox" class="form-check-input" id="emergencyCase">
+                        <label class="form-check-label" for="emergencyCase">This is an emergency/medical case</label>
+                    </div>
+                </div>
+
+                <div id="requestStatus"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeCorrectionRequestModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitCorrectionRequest()" id="submitBtn">
+                    Submit Request
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentAttendanceId = null;
+    let correctionModalInstance = null;
+
+    function getCorrectionModalInstance() {
+        if (!correctionModalInstance) {
+            correctionModalInstance = new bootstrap.Modal(document.getElementById('correctionRequestModal'));
+        }
+        return correctionModalInstance;
+    }
+
+    // Character counter
+    document.getElementById('reasonInput')?.addEventListener('input', function () {
+        document.getElementById('charCount').textContent = this.value.length + '/500';
+    });
+
+    function openCorrectionRequestModal(attendanceId) {
+        currentAttendanceId = attendanceId;
+        document.getElementById('requestStatus').innerHTML = '';
+        getCorrectionModalInstance().show();
+    }
+
+    function closeCorrectionRequestModal() {
+        getCorrectionModalInstance().hide();
+        document.getElementById('reasonInput').value = '';
+        document.getElementById('hasProof').checked = false;
+        document.getElementById('emergencyCase').checked = false;
+        document.getElementById('charCount').textContent = '0/500';
+        document.getElementById('requestStatus').innerHTML = '';
+    }
+
+    async function submitCorrectionRequest() {
+        const reason = document.getElementById('reasonInput').value.trim();
+
+        if (!reason) {
+            showError('Please provide a reason for your absence');
+            return;
+        }
+
+        if (reason.length < 10) {
+            showError('Reason must be at least 10 characters long');
+            return;
+        }
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        const originalSubmitText = submitBtn.innerHTML;
+        submitBtn.innerHTML = 'Submitting...';
+
+        try {
+            const submitCorrectionUrlTemplate = "{% url 'submit_correction_request' 0 %}";
+            const submitCorrectionUrl = submitCorrectionUrlTemplate.replace('/0/submit-correction/', `/${currentAttendanceId}/submit-correction/`);
+
+            const response = await fetch(
+                submitCorrectionUrl,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        reason: reason,
+                        has_proof: document.getElementById('hasProof').checked,
+                        emergency: document.getElementById('emergencyCase').checked
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (data.success) {
+                showSuccess('Request submitted successfully! Your teacher will review it soon.');
+                setTimeout(() => {
+                    closeCorrectionRequestModal();
+                    location.reload();
+                }, 2000);
+            } else {
+                showError(data.error || 'Error submitting request');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showError('An error occurred. Please try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalSubmitText;
+        }
+    }
+
+    function showError(message) {
+        document.getElementById('requestStatus').innerHTML = `
+            <div class="alert alert-danger">
+                <div><h4 class="font-bold">Error</h4><p>${message}</p></div>
+            </div>
+        `;
+    }
+
+    function showSuccess(message) {
+        document.getElementById('requestStatus').innerHTML = `
+            <div class="alert alert-success">
+                <div><h4 class="fw-bold">Success</h4><p>${message}</p></div>
+            </div>
+        `;
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}
