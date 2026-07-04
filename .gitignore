@@ -18,7 +18,7 @@ media/
 
 dataset/enrollment/faces_augmented/
 dataset/enrollment/faces_augmented_filtered/
-dataset/enrollment/augmentation_previews/
+dataset/enrollment/augmentation_previews
 dataset/enrollment/faces_augmented_safe/
 dataset/enrollment/faces_augmented_arcface/
 dataset/enrollment/faces_retina/
@@ -28,7 +28,9 @@ dataset/cctv_footage/
 dataset/enrollment/embeddings/
 dataset/enrollment/gallery/
 web/staticfiles/
-
+evaluation_dataset/
+scripts/
+dataset1/
 
 
 models/*.pth

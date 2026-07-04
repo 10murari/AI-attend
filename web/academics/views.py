@@ -512,7 +512,7 @@ def student_create(request):
 
                 messages.success(request,
                     f'Student "{user.full_name}" ({user.roll_no}) created. '
-                    f'Password: {form.cleaned_data.get("password", user.roll_no)}'
+                    # f'Password: {form.cleaned_data.get("password", user.roll_no)}'
                 )
                 return redirect('student_list')
             except ValueError:
