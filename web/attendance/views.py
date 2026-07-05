@@ -47,6 +47,62 @@ def current_local_time():
     return timezone.localtime(timezone.now()).time().replace(microsecond=0)
 
 
+def complete_session(session):
+    students = CustomUser.objects.filter(
+        role='student',
+        department=session.department,
+        semester=session.semester,
+        is_active=True,
+    )
+    if session.batch_id:
+        students = students.filter(batch_id=session.batch_id)
+
+    marked_ids = set(session.records.values_list('student_id', flat=True))
+    for student in students:
+        if student.id not in marked_ids:
+            Attendance.objects.create(
+                session=session,
+                student=student,
+                status='ABSENT',
+                marked_by='auto',
+            )
+
+    session.status = Session.Status.COMPLETED
+    session.end_time = current_local_time()
+    session.total_present = session.records.filter(status=Attendance.Status.PRESENT).count()
+    session.total_late = session.records.filter(status=Attendance.Status.LATE).count()
+    session.total_absent = session.records.filter(status=Attendance.Status.ABSENT).count()
+    session.save()
+    return session
+
+
+def session_started_at(session):
+    if not session.start_time:
+        return session.created_at
+
+    started_at = datetime.combine(session.date, session.start_time)
+    if timezone.is_naive(started_at):
+        started_at = timezone.make_aware(started_at)
+    return started_at
+
+
+def expire_stale_active_sessions(user):
+    timeout_minutes = int(getattr(settings, 'ATTENDANCE_ACTIVE_SESSION_TIMEOUT_MINUTES', 180))
+    if timeout_minutes <= 0:
+        return 0
+
+    cutoff = timezone.now() - timedelta(minutes=timeout_minutes)
+    stale_sessions = [
+        session for session in Session.objects.filter(teacher=user, status=Session.Status.ACTIVE)
+        if session_started_at(session) <= cutoff
+    ]
+
+    for session in stale_sessions:
+        complete_session(session)
+
+    return len(stale_sessions)
+
+
 # ==============================================================
 # TEACHER: MY SUBJECTS
 # ==============================================================
@@ -54,6 +110,10 @@ def current_local_time():
 @login_required
 @teacher_required
 def teacher_subjects(request):
+    expired_count = expire_stale_active_sessions(request.user)
+    if expired_count:
+        messages.info(request, f'{expired_count} old active session(s) were automatically ended.')
+
     assignments = SubjectTeacher.objects.filter(
         teacher=request.user
     ).select_related('subject', 'subject__department')
@@ -100,6 +160,10 @@ def teacher_subjects(request):
 @login_required
 @teacher_required
 def start_session(request, subject_id):
+    expired_count = expire_stale_active_sessions(request.user)
+    if expired_count:
+        messages.info(request, f'{expired_count} old active session(s) were automatically ended.')
+
     subject = get_object_or_404(Subject, pk=subject_id, is_active=True)
     available_batches = Batch.objects.filter(
         department=subject.department,
@@ -170,6 +234,13 @@ def session_detail(request, session_id):
     if request.user.role == 'hod' and session.department_id != request.user.department_id:
         messages.error(request, 'Access denied for other department session.')
         return redirect('teacher_subjects')
+
+    if session.teacher == request.user and session.status == Session.Status.ACTIVE:
+        timeout_minutes = int(getattr(settings, 'ATTENDANCE_ACTIVE_SESSION_TIMEOUT_MINUTES', 180))
+        if timeout_minutes > 0 and session_started_at(session) <= timezone.now() - timedelta(minutes=timeout_minutes):
+            complete_session(session)
+            messages.info(request, 'This session was automatically ended because it was left active too long.')
+            return redirect('session_detail', session_id=session.id)
 
     # Get all students for this subject
     students = CustomUser.objects.filter(
@@ -252,34 +323,8 @@ def end_session(request, session_id):
     session = get_object_or_404(Session, pk=session_id, teacher=request.user)
 
     if request.method == 'POST':
-        # Mark all unmarked students as ABSENT
-        students = CustomUser.objects.filter(
-            role='student', department=session.department,
-            semester=session.semester, is_active=True,
-        )
-        if session.batch_id:
-            students = students.filter(batch_id=session.batch_id)
-
-        marked_ids = set(session.records.values_list('student_id', flat=True))
-        absent_count = 0
-
-        for student in students:
-            if student.id not in marked_ids:
-                Attendance.objects.create(
-                    session=session,
-                    student=student,
-                    status='ABSENT',
-                    marked_by='auto',
-                )
-                absent_count += 1
-
-        # Update session
-        session.status = 'COMPLETED'
-        session.end_time = current_local_time()
-        session.total_present = session.records.filter(status='PRESENT').count()
-        session.total_late = session.records.filter(status='LATE').count()
-        session.total_absent = session.records.filter(status='ABSENT').count()
-        session.save()
+        if session.status == Session.Status.ACTIVE:
+            complete_session(session)
 
         messages.success(request,
             f'Session ended. Present: {session.total_present}, '
@@ -295,6 +340,10 @@ def end_session(request, session_id):
 @login_required
 @teacher_required
 def session_history(request):
+    expired_count = expire_stale_active_sessions(request.user)
+    if expired_count:
+        messages.info(request, f'{expired_count} old active session(s) were automatically ended.')
+
     sessions = Session.objects.filter(
         teacher=request.user
     ).select_related('subject', 'department', 'batch').order_by('-date', '-start_time')

@@ -158,6 +158,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Request window: hours after session end during which student can request correction
 ATTENDANCE_REQUEST_WINDOW = 48  # 48 hours
 
+# Active sessions older than this are automatically completed on teacher pages.
+ATTENDANCE_ACTIVE_SESSION_TIMEOUT_MINUTES = 180
+
 # Automatically send absence notifications after session ends
 AUTO_SEND_ABSENCE_NOTIFICATIONS = True
 

@@ -12,7 +12,7 @@
     </div>
     <div class="d-flex gap-2">
         {% if session.status == 'ACTIVE' %}
-        <form method="post" action="{% url 'end_session' session.id %}" onsubmit="return confirm('End session? Remaining students will be marked ABSENT.');">
+        <form id="endSessionForm" method="post" action="{% url 'end_session' session.id %}" onsubmit="if (confirm('End session? Remaining students will be marked ABSENT.')) { window.__allowSessionLeave = true; return true; } return false;">
             {% csrf_token %}<button type="submit" class="btn btn-danger btn-sm btn-icon"><i class="bi bi-stop-circle"></i> End Session</button>
         </form>
         {% endif %}
@@ -61,9 +61,9 @@
                         {% else %}-{% endif %}</td>
                     {% if session.status == 'ACTIVE' %}
                     <td><div class="d-flex gap-1">
-                        <a href="{% url 'mark_manual' session.id item.student.id 'present' %}" class="btn btn-sm {% if item.status == 'PRESENT' %}btn-success{% else %}btn-outline-success{% endif %}"><i class="bi bi-check"></i></a>
-                        <a href="{% url 'mark_manual' session.id item.student.id 'late' %}" class="btn btn-sm {% if item.status == 'LATE' %}btn-warning{% else %}btn-outline-warning{% endif %}"><i class="bi bi-clock"></i></a>
-                        <a href="{% url 'mark_manual' session.id item.student.id 'absent' %}" class="btn btn-sm {% if item.status == 'ABSENT' %}btn-danger{% else %}btn-outline-danger{% endif %}"><i class="bi bi-x"></i></a>
+                        <a href="{% url 'mark_manual' session.id item.student.id 'present' %}" data-session-safe="true" class="btn btn-sm {% if item.status == 'PRESENT' %}btn-success{% else %}btn-outline-success{% endif %}"><i class="bi bi-check"></i></a>
+                        <a href="{% url 'mark_manual' session.id item.student.id 'late' %}" data-session-safe="true" class="btn btn-sm {% if item.status == 'LATE' %}btn-warning{% else %}btn-outline-warning{% endif %}"><i class="bi bi-clock"></i></a>
+                        <a href="{% url 'mark_manual' session.id item.student.id 'absent' %}" data-session-safe="true" class="btn btn-sm {% if item.status == 'ABSENT' %}btn-danger{% else %}btn-outline-danger{% endif %}"><i class="bi bi-x"></i></a>
                     </div></td>
                     {% endif %}
                 </tr>
@@ -72,4 +72,48 @@
         </table>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% if session.status == 'ACTIVE' %}
+<script>
+    window.__allowSessionLeave = false;
+    const sessionScrollKey = 'attendance-session-scroll-{{ session.id }}';
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const savedScroll = sessionStorage.getItem(sessionScrollKey);
+        if (savedScroll !== null) {
+            sessionStorage.removeItem(sessionScrollKey);
+            window.scrollTo(0, parseInt(savedScroll, 10) || 0);
+        }
+    });
+
+    window.addEventListener('beforeunload', function (event) {
+        if (window.__allowSessionLeave) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+
+    document.addEventListener('click', function (event) {
+        const link = event.target.closest('a[href]');
+        if (!link) return;
+        if (link.dataset.sessionSafe === 'true') {
+            sessionStorage.setItem(sessionScrollKey, String(window.scrollY));
+            window.__allowSessionLeave = true;
+            return;
+        }
+        if (link.target && link.target !== '_self') return;
+        if (link.href === window.location.href || link.href.startsWith('javascript:')) return;
+
+        const message = 'This attendance session is still active. Click Cancel and use End Session before leaving, or OK to leave it active.';
+        if (!window.confirm(message)) {
+            event.preventDefault();
+            event.stopPropagation();
+        } else {
+            window.__allowSessionLeave = true;
+        }
+    }, true);
+</script>
+{% endif %}
 {% endblock %}
