@@ -277,6 +277,9 @@ class AIService:
         """
         self._ensure_loaded()
 
+        if not getattr(settings, 'ANTI_SPOOF_ENABLED', True):
+            return True, 1.0
+
         # Model not installed — fail open
         if self._spoof_predictor is None:
             return True, 1.0
@@ -304,13 +307,13 @@ class AIService:
 
             if min(face_w, face_h) < min_face_size:
                 logger.debug(
-                    "Liveness rejected small face crop: bbox=%s size=%sx%s min=%s",
+                    "Liveness skipped small face crop: bbox=%s size=%sx%s min=%s",
                     [x1, y1, x2, y2],
                     face_w,
                     face_h,
                     min_face_size,
                 )
-                return False, 0.0
+                return True, 0.0
 
             bbox_xywh = [x1, y1, face_w, face_h]
 
@@ -344,10 +347,11 @@ class AIService:
             total_score = float(prediction.sum())
             liveness_score = real_score / total_score if total_score > 0 else 0.0
 
-            is_real = liveness_score >= LIVENESS_THRESHOLD
+            threshold = float(getattr(settings, 'LIVENESS_THRESHOLD', LIVENESS_THRESHOLD))
+            is_real = liveness_score >= threshold
             logger.debug(
                 f"Liveness: {'REAL' if is_real else 'SPOOF'} "
-                f"(score={liveness_score:.3f}, threshold={LIVENESS_THRESHOLD})"
+                f"(score={liveness_score:.3f}, threshold={threshold})"
             )
             return is_real, round(liveness_score, 4)
 

@@ -137,7 +137,7 @@ ANTI_SPOOF_MIN_FACE_SIZE = 96
 ANTI_SPOOF_CROP_MARGIN_RATIO = 0.12
 
 # MiniFASNet liveness threshold (used by ai_service.check_liveness)
-# 0.85 = conservative. Lower to 0.78 if real faces get rejected.
+# 0.85 is conservative and can reject real classmates who are farther from the webcam.
 LIVENESS_THRESHOLD = 0.85
 
 # ==============================================================

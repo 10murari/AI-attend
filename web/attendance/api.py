@@ -18,6 +18,11 @@ def current_local_time():
     return timezone.localtime(timezone.now()).time().replace(microsecond=0)
 
 
+def serialize_face_box(face):
+    """Return InsightFace bbox as plain JSON-safe [x1, y1, x2, y2]."""
+    return [round(float(v), 2) for v in face.bbox[:4]]
+
+
 @login_required
 @require_POST
 def recognize_frame(request, session_id):
@@ -94,6 +99,7 @@ def recognize_frame(request, session_id):
         faces = ai_service.detect_faces(frame)
 
         recognized   = []
+        detections    = []
         unknown_count = 0
         spoof_count   = 0
         already_marked = set(
@@ -101,6 +107,7 @@ def recognize_frame(request, session_id):
         )
 
         for face in faces:
+            face_box = serialize_face_box(face)
 
             # --------------------------------------------------------------
             # ANTISPOOFING GATE
@@ -112,6 +119,12 @@ def recognize_frame(request, session_id):
 
             if not is_real:
                 spoof_count += 1
+                detections.append({
+                    'bbox': face_box,
+                    'status': 'spoof',
+                    'label': 'SPOOF',
+                    'liveness': liveness_score,
+                })
                 logger.info(
                     f"Spoof rejected in session {session_id} "
                     f"(liveness={liveness_score:.3f})"
@@ -129,12 +142,20 @@ def recognize_frame(request, session_id):
             )
 
             if match:
+                detections.append({
+                    'bbox': face_box,
+                    'status': 'real',
+                    'label': f"REAL | {match['roll_no']}",
+                    'liveness': liveness_score,
+                    'similarity': match['similarity'],
+                })
                 if match['user_id'] in already_marked:
                     recognized.append({
                         'roll_no':   match['roll_no'],
                         'name':      match['name'],
                         'similarity': match['similarity'],
                         'liveness':  liveness_score,
+                        'liveness_score': liveness_score,
                         'status':    'ALREADY_MARKED',
                     })
                 else:
@@ -152,16 +173,25 @@ def recognize_frame(request, session_id):
                         'name':      match['name'],
                         'similarity': match['similarity'],
                         'liveness':  liveness_score,
+                        'liveness_score': liveness_score,
                         'status':    'MARKED',
                     })
             else:
+                detections.append({
+                    'bbox': face_box,
+                    'status': 'real',
+                    'label': 'REAL | UNKNOWN',
+                    'liveness': liveness_score,
+                })
                 unknown_count += 1
 
         return JsonResponse({
             'faces_detected':  len(faces),
+            'detections':      detections,
             'recognized':      recognized,
             'unknown':         unknown_count,
             'spoof_count':     spoof_count,
+            'spoof_rejected':  spoof_count,
             'total_marked':    len(already_marked),
             'total_students':  len(class_students),
         })

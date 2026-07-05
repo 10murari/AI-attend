@@ -35,6 +35,8 @@
                     overflow:hidden; aspect-ratio: 16/9;">
                     <video id="attendanceVideo" autoplay playsinline muted
                         style="width:100%; height:100%; object-fit:cover;"></video>
+                    <canvas id="attendanceOverlay" style="position:absolute; inset:0; width:100%; height:100%;
+                        pointer-events:none;"></canvas>
                     <canvas id="attendanceCanvas" style="display:none;"></canvas>
                 </div>
             </div>
@@ -67,6 +69,9 @@
     const attVideo = document.getElementById('attendanceVideo'); 
     const attCanvas = document.getElementById('attendanceCanvas');
     const attCtx = attCanvas.getContext('2d');
+    const overlayCanvas = document.getElementById('attendanceOverlay');
+    const overlayCtx = overlayCanvas.getContext('2d');
+    const previewWrap = document.getElementById('cameraPreviewWrap');
     const camStatus = document.getElementById('camStatus');
     const recLog = document.getElementById('recognitionLog');
     const recCountSpan = document.getElementById('recCount');
@@ -75,21 +80,43 @@
     const spoofCountBadge = document.getElementById('spoofCountBadge');
     const spoofToastEl = document.getElementById('spoofToast');
     const spoofToastBody = document.getElementById('spoofToastBody');
-    const spoofToast = spoofToastEl ? new bootstrap.Toast(spoofToastEl, { delay: 2500 }) : null;
+    let spoofToast = null;
     let spoofTotal = 0;
+    let scanInFlight = false;
+
+    function getSpoofToast() {
+        if (!spoofToastEl || !window.bootstrap || !window.bootstrap.Toast) return null;
+        if (!spoofToast) spoofToast = new bootstrap.Toast(spoofToastEl, { delay: 2500 });
+        return spoofToast;
+    }
 
     function showSpoofToast(message) {
-        if (!spoofToast || !spoofToastBody) return;
+        const toast = getSpoofToast();
+        if (!toast || !spoofToastBody) return;
         spoofToastBody.textContent = message;
-        spoofToast.show();
+        toast.show();
     }
 
     async function startAttendanceCam() {
         try {
-            attStream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 640, height: 480, facingMode: 'environment' }
-            });
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('Camera access is not available in this browser or connection.');
+            }
+
+            try {
+                attStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: { ideal: 'environment' }
+                    }
+                });
+            } catch (firstErr) {
+                attStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            }
+
             attVideo.srcObject = attStream;
+            await attVideo.play();
             camStatus.textContent = 'Camera On';
             camStatus.className = 'badge badge-active';
             document.getElementById('btnStartCam').disabled = true;
@@ -113,6 +140,7 @@
         if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
         if (attStream) { attStream.getTracks().forEach(t => t.stop()); attStream = null; }
         attVideo.srcObject = null;
+        clearAttendanceOverlay();
         camStatus.textContent = 'Camera Off';
         camStatus.className = 'badge bg-secondary';
         document.getElementById('btnStartCam').disabled = false;
@@ -133,8 +161,72 @@
         }
     });
 
+    function resizeOverlayCanvas() {
+        const rect = previewWrap.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const width = Math.max(1, Math.round(rect.width * dpr));
+        const height = Math.max(1, Math.round(rect.height * dpr));
+
+        if (overlayCanvas.width !== width || overlayCanvas.height !== height) {
+            overlayCanvas.width = width;
+            overlayCanvas.height = height;
+        }
+
+        overlayCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { width: rect.width, height: rect.height };
+    }
+
+    function clearAttendanceOverlay() {
+        resizeOverlayCanvas();
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    }
+
+    function drawAttendanceOverlay(detections) {
+        const videoWidth = attVideo.videoWidth;
+        const videoHeight = attVideo.videoHeight;
+        const canvasSize = resizeOverlayCanvas();
+        overlayCtx.clearRect(0, 0, canvasSize.width, canvasSize.height);
+
+        if (!videoWidth || !videoHeight || !detections || detections.length === 0) return;
+
+        const scale = Math.max(canvasSize.width / videoWidth, canvasSize.height / videoHeight);
+        const renderedWidth = videoWidth * scale;
+        const renderedHeight = videoHeight * scale;
+        const offsetX = (canvasSize.width - renderedWidth) / 2;
+        const offsetY = (canvasSize.height - renderedHeight) / 2;
+
+        for (const detection of detections) {
+            if (!detection.bbox || detection.bbox.length < 4) continue;
+
+            const [x1, y1, x2, y2] = detection.bbox;
+            const x = x1 * scale + offsetX;
+            const y = y1 * scale + offsetY;
+            const width = (x2 - x1) * scale;
+            const height = (y2 - y1) * scale;
+            const isSpoof = detection.status === 'spoof';
+            const color = isSpoof ? '#dc3545' : '#198754';
+            const label = detection.label || (isSpoof ? 'SPOOF' : 'REAL');
+
+            overlayCtx.lineWidth = 3;
+            overlayCtx.strokeStyle = color;
+            overlayCtx.strokeRect(x, y, width, height);
+
+            overlayCtx.font = '600 13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            const labelWidth = overlayCtx.measureText(label).width + 14;
+            const labelHeight = 24;
+            const labelX = Math.max(0, Math.min(x, canvasSize.width - labelWidth));
+            const labelY = Math.max(0, y - labelHeight);
+
+            overlayCtx.fillStyle = color;
+            overlayCtx.fillRect(labelX, labelY, labelWidth, labelHeight);
+            overlayCtx.fillStyle = '#fff';
+            overlayCtx.fillText(label, labelX + 7, labelY + 16);
+        }
+    }
+
     async function scanFrame() {
-        if (!attStream) return;
+        if (!attStream || scanInFlight || attVideo.readyState < 2) return;
+        scanInFlight = true;
 
         attCanvas.width = attVideo.videoWidth;
         attCanvas.height = attVideo.videoHeight;
@@ -152,6 +244,7 @@
             });
 
             const data = await res.json();
+            drawAttendanceOverlay(data.detections || []);
 
             if (data.recognized && data.recognized.length > 0) {
                 for (const r of data.recognized) {
@@ -172,17 +265,18 @@
                 }
             }
 
-            if (data.spoof_rejected && data.spoof_rejected > 0) {
+            const spoofRejected = data.spoof_rejected || data.spoof_count || 0;
+            if (spoofRejected > 0) {
                 const time = new Date().toLocaleTimeString();
-                spoofTotal += data.spoof_rejected;
+                spoofTotal += spoofRejected;
                 spoofCountSpan.textContent = spoofTotal;
                 spoofCountBadge.style.display = '';
-                showSpoofToast(`Spoof blocked: ${data.spoof_rejected} face(s) rejected by liveness check`);
+                showSpoofToast(`Spoof blocked: ${spoofRejected} face(s) rejected by liveness check`);
 
                 recLog.innerHTML = `
                 <div class="alert alert-danger py-1 px-2 mb-1 small d-flex align-items-center gap-2">
                     <i class="bi bi-shield-exclamation"></i>
-                    <span><strong>Spoof blocked:</strong> ${data.spoof_rejected} face(s) rejected by liveness check</span>
+                    <span><strong>Spoof blocked:</strong> ${spoofRejected} face(s) rejected by liveness check</span>
                     <span class="ms-auto text-muted text-end">${time}</span>
                 </div>` + recLog.innerHTML;
             }
@@ -199,6 +293,8 @@
 
         } catch (err) {
             console.error('Scan error:', err);
+        } finally {
+            scanInFlight = false;
         }
     }
 
