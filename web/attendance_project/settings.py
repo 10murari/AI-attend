@@ -75,9 +75,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'attendance_system',
         'USER': 'attendance_admin',
-        'PASSWORD': 'root',     # ← CHANGE THIS
+        'PASSWORD': 'admin',     # ← CHANGE THIS
         'HOST': 'localhost',
-        'PORT': '5433',
+        'PORT': '5432',
     }
 }
 

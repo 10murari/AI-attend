@@ -39,3 +39,8 @@ models/*.pt
 models/*.onnx
 
 test_data/
+
+docs/NEON_SETUP.md
+data/
+src/core/anti_spoofing
+backup.sql

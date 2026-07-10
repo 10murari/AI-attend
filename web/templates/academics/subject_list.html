@@ -27,7 +27,7 @@
 </div></div>
 <div class="card"><div class="card-body p-0">
 <table class="table table-hover responsive-table">
-<thead><tr><th>Code</th><th>Subject</th><th>Department</th><th>Semester</th><th>Credits</th><th>Teacher</th><th>Actions</th></tr></thead>
+<thead><tr><th>Code</th><th>Subject</th><th>Department</th><th>Semester</th><th>Credits</th><th>Teacher</th><th>Status</th><th>Actions</th></tr></thead>
 <tbody>
 {% for subject in subjects %}
 <tr>
@@ -37,11 +37,12 @@
     <td>Sem {{ subject.semester }}</td>
     <td>{{ subject.credit_hours }}</td>
     <td>{% with t=subject.teacher %}{% if t %}{{ t.full_name }}{% else %}<span class="text-danger small"><i class="bi bi-exclamation-circle"></i> Not assigned</span>{% endif %}{% endwith %}</td>
+    <td>{% if subject.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
     <td><div class="d-flex gap-1">
         <a href="{% url 'subject_edit' subject.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></a>
         <a href="{% url 'subject_delete' subject.pk %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></a>
     </div></td>
 </tr>
-{% empty %}<tr><td colspan="7"><div class="empty-state"><i class="bi bi-book"></i><h6>No subjects found</h6></div></td></tr>{% endfor %}
+{% empty %}<tr><td colspan="8"><div class="empty-state"><i class="bi bi-book"></i><h6>No subjects found</h6></div></td></tr>{% endfor %}
 </tbody></table></div></div>
 {% endblock %}

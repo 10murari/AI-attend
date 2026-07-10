@@ -16,9 +16,9 @@ PROJECT_ROOT = "C:/Final_Project"
 DB_CONFIG = {
     "dbname": "attendance_system",
     "user": "attendance_admin",
-    "password": "root",     # ← CHANGE THIS
+    "password": "admin",     # ← CHANGE THIS
     "host": "localhost",
-    "port": 5433,
+    "port": 5432,
 }
 
 # ==============================================================
