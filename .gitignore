@@ -39,3 +39,8 @@ models/*.pt
 models/*.onnx
 
 test_data/
+
+data/
+docs/
+backup.sql
+core/
