@@ -102,6 +102,7 @@ def recognize_frame(request, session_id):
         detections    = []
         unknown_count = 0
         spoof_count   = 0
+        uncertain_count = 0
         already_marked = set(
             session.records.values_list('student_id', flat=True)
         )
@@ -113,11 +114,13 @@ def recognize_frame(request, session_id):
             # ANTISPOOFING GATE
             # Runs before any embedding work so spoofed frames cost nothing
             # beyond a fast CNN forward pass (~15-30 ms on CPU).
-            # Fails open: if the model isn't installed, is_real=True always.
+            # Verdicts: 'real' proceeds; 'spoof' is rejected; 'too_small'
+            # and 'error' are unverifiable — shown as uncertain and never
+            # marked (no silent auto-pass).
             # --------------------------------------------------------------
-            is_real, liveness_score = ai_service.check_liveness(frame, face)
+            verdict, liveness_score = ai_service.check_liveness(frame, face)
 
-            if not is_real:
+            if verdict == 'spoof':
                 spoof_count += 1
                 detections.append({
                     'bbox': face_box,
@@ -130,6 +133,16 @@ def recognize_frame(request, session_id):
                     f"(liveness={liveness_score:.3f})"
                 )
                 continue                # skip embedding + DB write entirely
+
+            if verdict != 'real':
+                uncertain_count += 1
+                detections.append({
+                    'bbox': face_box,
+                    'status': 'uncertain',
+                    'label': 'COME CLOSER' if verdict == 'too_small' else 'LIVENESS ERROR',
+                    'liveness': liveness_score,
+                })
+                continue                # unverifiable — never mark attendance
 
             # --------------------------------------------------------------
             # Embedding + recognition (only reached for live faces)
@@ -192,6 +205,7 @@ def recognize_frame(request, session_id):
             'unknown':         unknown_count,
             'spoof_count':     spoof_count,
             'spoof_rejected':  spoof_count,
+            'uncertain_count': uncertain_count,
             'total_marked':    len(already_marked),
             'total_students':  len(class_students),
         })

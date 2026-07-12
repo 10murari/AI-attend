@@ -265,24 +265,30 @@ class AIService:
             face  : insightface Face object returned by detect_faces()
 
         Returns:
-            (is_real: bool, liveness_score: float)
+            (verdict: str, liveness_score: float)
 
-            is_real        — True if the face passes the liveness threshold
+            verdict — 'real'      face passed the liveness threshold
+                      'spoof'     model flagged a presentation attack
+                      'too_small' face too small to verify; the caller should
+                                  ask the person to move closer (attendance
+                                  must NOT be marked)
+                      'error'     liveness could not be evaluated (attendance
+                                  must NOT be marked)
             liveness_score — real-face probability in [0, 1]; always present
                              so the caller can log or surface it in the UI
 
         Fail-open contract:
-            If the anti-spoofing model was not installed, returns (True, 1.0)
-            so the existing recognition pipeline is unaffected.
+            Only if the anti-spoofing model was never installed does this
+            return ('real', 1.0). Runtime failures fail CLOSED as 'error'.
         """
         self._ensure_loaded()
 
         if not getattr(settings, 'ANTI_SPOOF_ENABLED', True):
-            return True, 1.0
+            return 'real', 1.0
 
         # Model not installed — fail open
         if self._spoof_predictor is None:
-            return True, 1.0
+            return 'real', 1.0
 
         try:
             from antispoof.utility import parse_model_name
@@ -303,17 +309,17 @@ class AIService:
 
             if face_w <= 0 or face_h <= 0:
                 logger.debug("Liveness rejected invalid face bbox: %s", [x1, y1, x2, y2])
-                return False, 0.0
+                return 'error', 0.0
 
             if min(face_w, face_h) < min_face_size:
                 logger.debug(
-                    "Liveness skipped small face crop: bbox=%s size=%sx%s min=%s",
+                    "Liveness: face too small to verify: bbox=%s size=%sx%s min=%s",
                     [x1, y1, x2, y2],
                     face_w,
                     face_h,
                     min_face_size,
                 )
-                return True, 0.0
+                return 'too_small', 0.0
 
             bbox_xywh = [x1, y1, face_w, face_h]
 
@@ -348,17 +354,18 @@ class AIService:
             liveness_score = real_score / total_score if total_score > 0 else 0.0
 
             threshold = float(getattr(settings, 'LIVENESS_THRESHOLD', LIVENESS_THRESHOLD))
-            is_real = liveness_score >= threshold
+            verdict = 'real' if liveness_score >= threshold else 'spoof'
             logger.debug(
-                f"Liveness: {'REAL' if is_real else 'SPOOF'} "
+                f"Liveness: {verdict.upper()} "
                 f"(score={liveness_score:.3f}, threshold={threshold})"
             )
-            return is_real, round(liveness_score, 4)
+            return verdict, round(liveness_score, 4)
 
         except Exception as e:
-            # Never crash the attendance flow due to antispoofing error
-            logger.warning(f"Liveness check error (failing open): {e}")
-            return True, 1.0
+            # Fail CLOSED: an inference error must never look like a live face.
+            # The caller skips marking attendance for 'error' verdicts.
+            logger.warning(f"Liveness check error (failing closed): {e}")
+            return 'error', 0.0
 
 
 # Global singleton

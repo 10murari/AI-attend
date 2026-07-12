@@ -75,9 +75,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'attendance_system',
         'USER': 'attendance_admin',
-        'PASSWORD': 'root',     # ← CHANGE THIS
+        'PASSWORD': 'admin',     # ← CHANGE THIS
         'HOST': 'localhost',
-        'PORT': '5433',
+        'PORT': '5432',
     }
 }
 
@@ -133,7 +133,10 @@ ANTI_SPOOF_LIVE_CLASS_INDEX = 0
 ANTI_SPOOF_USE_HEURISTIC_FALLBACK = True
 ANTI_SPOOF_UNCERTAIN_MARGIN = 0.15
 ANTI_SPOOF_DEBUG = False
-ANTI_SPOOF_MIN_FACE_SIZE = 96
+# Below this size (min of bbox width/height, px) a face cannot be verified:
+# the API returns 'too_small' and attendance is NOT marked — never auto-passed.
+# MiniFASNet runs on 80x80 context crops, so 64px faces are still verifiable.
+ANTI_SPOOF_MIN_FACE_SIZE = 64
 ANTI_SPOOF_CROP_MARGIN_RATIO = 0.12
 
 # MiniFASNet liveness threshold (used by ai_service.check_liveness)
