@@ -47,6 +47,10 @@ def current_local_time():
     return timezone.localtime(timezone.now()).time().replace(microsecond=0)
 
 
+def current_local_date():
+    return timezone.localtime(timezone.now()).date()
+
+
 def complete_session(session):
     students = CustomUser.objects.filter(
         role='student',
@@ -194,7 +198,7 @@ def start_session(request, subject_id):
             department=subject.department,
             batch=selected_batch,
             semester=subject.semester,
-            date=timezone.now().date(),
+            date=current_local_date(),
             start_time=current_local_time(),
             status='ACTIVE',
         )
@@ -492,7 +496,7 @@ def hod_overview(request):
 
     dept = user.department
     subjects = Subject.objects.filter(department=dept, is_active=True)
-    today = timezone.now().date()
+    today = current_local_date()
 
     subject_data = []
     for subject in subjects:

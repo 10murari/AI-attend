@@ -73,7 +73,7 @@ def get_admin_context():
     from attendance.models import Session
     from django.utils import timezone
 
-    today = timezone.now().date()
+    today = timezone.localtime(timezone.now()).date()
     departments = Department.objects.filter(is_active=True)
 
     dept_list = []
@@ -112,7 +112,7 @@ def get_hod_context(user):
     from django.utils import timezone
 
     dept = user.department
-    today = timezone.now().date()
+    today = timezone.localtime(timezone.now()).date()
     return {
         'department': dept,
         'total_students': CustomUser.objects.filter(role='student', department=dept, is_active=True).count(),
@@ -128,7 +128,7 @@ def get_teacher_context(user):
     from attendance.models import Session
     from django.utils import timezone
 
-    today = timezone.now().date()
+    today = timezone.localtime(timezone.now()).date()
     assignments = SubjectTeacher.objects.filter(
         teacher=user
     ).select_related('subject', 'subject__department')
