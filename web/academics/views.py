@@ -73,7 +73,7 @@ def batch_create(request):
 @login_required
 @admin_required
 def department_list(request):
-    departments = Department.objects.filter(is_active=True)
+    departments = Department.objects.order_by('-is_active', 'code')
 
     dept_data = []
     for dept in departments:
@@ -131,13 +131,23 @@ def department_edit(request, pk):
 @login_required
 @admin_required
 def department_delete(request, pk):
+    from attendance.models import Session
     dept = get_object_or_404(Department, pk=pk)
     if request.method == 'POST':
-        dept.is_active = False
-        dept.save()
-        messages.success(request, f'{dept.name} deactivated.')
+        name = dept.name
+        dept.delete()
+        messages.success(request, f'{name} permanently deleted.')
         return redirect('department_list')
-    return render(request, 'academics/department_confirm_delete.html', {'dept': dept})
+    return render(request, 'academics/department_confirm_delete.html', {
+        'dept': dept,
+        'cascade_counts': [
+            ('Subjects (deleted)', Subject.objects.filter(department=dept).count()),
+            ('Batches (deleted)', Batch.objects.filter(department=dept).count()),
+            ('Class sessions & their attendance (deleted)', Session.objects.filter(department=dept).count()),
+            ('Students (kept, but unassigned)', CustomUser.objects.filter(role='student', department=dept).count()),
+            ('Teachers (kept, but unassigned)', CustomUser.objects.filter(role__in=['teacher', 'hod'], department=dept).count()),
+        ],
+    })
 
 
 # ==============================================================
@@ -148,8 +158,8 @@ def department_delete(request, pk):
 @admin_required
 def teacher_list(request):
     teachers = CustomUser.objects.filter(
-        role__in=['teacher', 'hod'], is_active=True
-    ).select_related('department').prefetch_related('subject_assignments__subject')
+        role__in=['teacher', 'hod']
+    ).select_related('department').prefetch_related('subject_assignments__subject').order_by('-is_active', 'full_name')
 
     dept_filter = request.GET.get('department')
     if dept_filter:
@@ -202,17 +212,22 @@ def teacher_edit(request, pk):
 @login_required
 @admin_required
 def teacher_delete(request, pk):
+    from attendance.models import Session, Attendance
     teacher = get_object_or_404(CustomUser, pk=pk, role__in=['teacher', 'hod'])
     if request.method == 'POST':
-        teacher.is_active = False
-        teacher.save()
-        messages.success(request, f'{teacher.full_name} deactivated.')
+        name = teacher.full_name
+        teacher.delete()
+        messages.success(request, f'{name} permanently deleted.')
         return redirect('teacher_list')
     return render(request, 'academics/confirm_delete.html', {
         'obj': teacher,
         'obj_type': 'Teacher',
         'obj_name': teacher.full_name,
         'cancel_url': 'teacher_list',
+        'cascade_counts': [
+            ('Class sessions they taught (deleted)', Session.objects.filter(teacher=teacher).count()),
+            ("Students' attendance records in those sessions (deleted)", Attendance.objects.filter(session__teacher=teacher).count()),
+        ],
     })
 
 
@@ -286,9 +301,9 @@ def teacher_reset_password(request, pk):
 @login_required
 @admin_required
 def subject_list(request):
-    subjects = Subject.objects.filter(is_active=True).select_related(
+    subjects = Subject.objects.select_related(
         'department'
-    ).prefetch_related('teacher_assignments__teacher')
+    ).prefetch_related('teacher_assignments__teacher').order_by('-is_active', 'code')
 
     dept_filter = request.GET.get('department')
     sem_filter = request.GET.get('semester')
@@ -371,17 +386,22 @@ def subject_edit(request, pk):
 @login_required
 @admin_required
 def subject_delete(request, pk):
+    from attendance.models import Session, Attendance
     subject = get_object_or_404(Subject, pk=pk)
     if request.method == 'POST':
-        subject.is_active = False
-        subject.save()
-        messages.success(request, f'{subject.code} deactivated.')
+        code = subject.code
+        subject.delete()
+        messages.success(request, f'{code} permanently deleted.')
         return redirect('subject_list')
     return render(request, 'academics/confirm_delete.html', {
         'obj': subject,
         'obj_type': 'Subject',
         'obj_name': f'{subject.code} — {subject.name}',
         'cancel_url': 'subject_list',
+        'cascade_counts': [
+            ('Class sessions (deleted)', Session.objects.filter(subject=subject).count()),
+            ('Attendance records in those sessions (deleted)', Attendance.objects.filter(session__subject=subject).count()),
+        ],
     })
 
 
@@ -393,8 +413,8 @@ def subject_delete(request, pk):
 @admin_required
 def student_list(request):
     students = CustomUser.objects.filter(
-        role='student', is_active=True
-    ).select_related('department', 'batch', 'batch__department').order_by('department__code', 'semester', 'roll_no')
+        role='student'
+    ).select_related('department', 'batch', 'batch__department').order_by('-is_active', 'department__code', 'semester', 'roll_no')
 
     dept_filter = request.GET.get('department')
     sem_filter = request.GET.get('semester')
@@ -589,17 +609,23 @@ def student_edit(request, pk):
 @login_required
 @admin_required
 def student_delete(request, pk):
+    from attendance.models import Attendance
+    from enrollment.models import FaceEmbedding
     student = get_object_or_404(CustomUser, pk=pk, role='student')
     if request.method == 'POST':
-        student.is_active = False
-        student.save()
-        messages.success(request, f'{student.full_name} ({student.roll_no}) deactivated.')
+        name, roll = student.full_name, student.roll_no
+        student.delete()
+        messages.success(request, f'{name} ({roll}) permanently deleted.')
         return redirect('student_list')
     return render(request, 'academics/confirm_delete.html', {
         'obj': student,
         'obj_type': 'Student',
         'obj_name': f'{student.roll_no} — {student.full_name}',
         'cancel_url': 'student_list',
+        'cascade_counts': [
+            ('Attendance records (deleted)', Attendance.objects.filter(student=student).count()),
+            ('Face enrollments (deleted)', FaceEmbedding.objects.filter(user=student).count()),
+        ],
     })
 
 

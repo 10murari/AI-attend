@@ -3,7 +3,10 @@
 {% block content %}
 <div class="page-header">
     <h4><i class="bi bi-people"></i> Students <small class="text-muted fw-normal ms-2">({{ total_students }})</small></h4>
-    <a href="{% url 'student_create' %}" class="btn btn-primary btn-sm btn-icon"><i class="bi bi-plus-lg"></i> Add Student</a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'student_import' %}" class="btn btn-outline-primary btn-sm btn-icon"><i class="bi bi-upload"></i> Import CSV</a>
+        <a href="{% url 'student_create' %}" class="btn btn-primary btn-sm btn-icon"><i class="bi bi-plus-lg"></i> Add Student</a>
+    </div>
 </div>
 <div class="card mb-3"><div class="card-body py-2">
     <form method="get" class="d-flex gap-3 align-items-center">
@@ -35,7 +38,7 @@
 </div></div>
 <div class="card"><div class="card-body p-0">
 <table class="table table-hover responsive-table">
-<thead><tr><th>#</th><th>Roll No</th><th>Name</th><th>Department</th><th>Batch</th><th>Semester</th><th>Face Enrolled</th><th>Actions</th></tr></thead>
+<thead><tr><th>#</th><th>Roll No</th><th>Name</th><th>Department</th><th>Batch</th><th>Semester</th><th>Status</th><th>Face Enrolled</th><th>Actions</th></tr></thead>
 <tbody>
 {% for item in student_data %}
 <tr>
@@ -45,6 +48,7 @@
     <td>{% if item.user.department %}<span class="badge bg-dark">{{ item.user.department.code }}</span>{% else %}-{% endif %}</td>
     <td>{% if item.user.batch %}<span class="badge bg-primary">{{ item.user.batch.year }} ({{ item.user.batch.code }})</span>{% else %}-{% endif %}</td>
     <td>Sem {{ item.user.semester|default:"-" }}</td>
+    <td>{% if item.user.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary" title="Deactivated — typically a graduated student"><i class="bi bi-mortarboard"></i> Graduated</span>{% endif %}</td>
     <td>{% if item.has_embedding %}<span class="badge badge-present"><i class="bi bi-check-circle"></i> Enrolled</span>{% else %}<span class="badge badge-absent"><i class="bi bi-x-circle"></i> Not Enrolled</span>{% endif %}</td>
     <td><div class="d-flex gap-1">
         <a href="{% url 'student_edit' item.user.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></a>
@@ -52,6 +56,6 @@
         <a href="{% url 'student_delete' item.user.pk %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></a>
     </div></td>
 </tr>
-{% empty %}<tr><td colspan="8"><div class="empty-state"><i class="bi bi-people"></i><h6>No students found</h6></div></td></tr>{% endfor %}
+{% empty %}<tr><td colspan="9"><div class="empty-state"><i class="bi bi-people"></i><h6>No students found</h6></div></td></tr>{% endfor %}
 </tbody></table></div></div>
 {% endblock %}

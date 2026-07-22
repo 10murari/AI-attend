@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — AttendAI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-upload"></i> {{ title }}</h4>
+    <a href="{% url list_url %}" class="btn btn-outline-secondary btn-sm">Back to list</a>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">CSV file</label>
+                        <input type="file" name="csv_file" class="form-control" accept=".csv,text/csv" required>
+                        <div class="form-text">
+                            UTF-8 CSV with a header row. Max 2 MB / 1000 rows.
+                            The import is all-or-nothing: if any row has an error, nothing is saved.
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-icon">
+                            <i class="bi bi-upload"></i> Import
+                        </button>
+                        <a href="{% url 'import_template' kind %}" class="btn btn-outline-secondary btn-icon">
+                            <i class="bi bi-download"></i> Download template
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if errors %}
+        <div class="card border-danger">
+            <div class="card-header text-danger">
+                <i class="bi bi-exclamation-triangle"></i>
+                Import failed — {{ errors|length }} error(s). Nothing was saved.
+            </div>
+            <div class="card-body p-0" style="max-height: 320px; overflow-y: auto;">
+                <ul class="list-group list-group-flush">
+                    {% for error in errors %}
+                    <li class="list-group-item small text-danger">{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-table"></i> Expected columns</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr><th>Column</th><th>Required</th><th>Notes</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for col in columns %}
+                        <tr>
+                            <td><code>{{ col.name }}</code></td>
+                            <td>
+                                {% if col.required %}
+                                <span class="badge bg-danger">Required</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Optional</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ col.note }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if kind == 'students' %}
+        <div class="alert alert-info mt-3 small">
+            <i class="bi bi-info-circle"></i>
+            Roll numbers and usernames are generated automatically from the
+            department roll code, batch year and sequence — exactly like the
+            single "Add Student" form. Batches are created automatically if
+            they don't exist yet.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

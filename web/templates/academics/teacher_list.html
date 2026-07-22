@@ -3,7 +3,10 @@
 {% block content %}
 <div class="page-header">
     <h4><i class="bi bi-person-badge"></i> Teachers</h4>
-    <a href="{% url 'teacher_create' %}" class="btn btn-primary btn-sm btn-icon"><i class="bi bi-plus-lg"></i> Add Teacher</a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'teacher_import' %}" class="btn btn-outline-primary btn-sm btn-icon"><i class="bi bi-upload"></i> Import CSV</a>
+        <a href="{% url 'teacher_create' %}" class="btn btn-primary btn-sm btn-icon"><i class="bi bi-plus-lg"></i> Add Teacher</a>
+    </div>
 </div>
 <div class="card mb-3"><div class="card-body py-2">
     <form method="get" class="d-flex gap-3 align-items-center">
@@ -16,7 +19,7 @@
 </div></div>
 <div class="card"><div class="card-body p-0">
 <table class="table table-hover responsive-table" data-inline="username">
-<thead><tr><th>Name</th><th>Username</th><th>Department</th><th>Role</th><th>Subjects</th><th>Actions</th></tr></thead>
+<thead><tr><th>Name</th><th>Username</th><th>Department</th><th>Role</th><th>Subjects</th><th>Status</th><th>Actions</th></tr></thead>
 <tbody>
 {% for teacher in teachers %}
 <tr>
@@ -25,13 +28,14 @@
     <td>{% if teacher.department %}<span class="badge bg-dark">{{ teacher.department.code }}</span>{% else %}-{% endif %}</td>
     <td>{% if teacher.role == 'hod' %}<span class="badge badge-hod badge-role">HOD</span>{% else %}<span class="badge badge-teacher badge-role">Teacher</span>{% endif %}</td>
     <td>{% for a in teacher.subject_assignments.all %}<span class="badge" style="background:var(--primary-light);color:var(--primary);">{{ a.subject.code }}</span> {% empty %}<span class="text-muted small">None</span>{% endfor %}</td>
+    <td>{% if teacher.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
     <td><div class="d-flex gap-1">
         <a href="{% url 'teacher_edit' teacher.pk %}" class="btn btn-outline-secondary btn-sm" title="Edit"><i class="bi bi-pencil"></i></a>
         <a href="{% url 'teacher_promote_hod' teacher.pk %}" class="btn btn-outline-warning btn-sm" title="HOD"><i class="bi bi-shield-check"></i></a>
         <a href="{% url 'teacher_reset_password' teacher.pk %}" class="btn btn-outline-info btn-sm" title="Reset Password"><i class="bi bi-key"></i></a>
-        <a href="{% url 'teacher_delete' teacher.pk %}" class="btn btn-outline-danger btn-sm" title="Deactivate"><i class="bi bi-trash"></i></a>
+        <a href="{% url 'teacher_delete' teacher.pk %}" class="btn btn-outline-danger btn-sm" title="Delete"><i class="bi bi-trash"></i></a>
     </div></td>
 </tr>
-{% empty %}<tr><td colspan="6"><div class="empty-state"><i class="bi bi-person-badge"></i><h6>No teachers yet</h6></div></td></tr>{% endfor %}
+{% empty %}<tr><td colspan="7"><div class="empty-state"><i class="bi bi-person-badge"></i><h6>No teachers yet</h6></div></td></tr>{% endfor %}
 </tbody></table></div></div>
 {% endblock %}
