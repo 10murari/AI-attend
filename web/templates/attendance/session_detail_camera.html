@@ -206,6 +206,7 @@
             const status = detection.status || 'real';
             const color = status === 'spoof' ? '#dc3545'
                         : status === 'uncertain' ? '#ffc107'
+                        : status === 'confirming' ? '#0d6efd'
                         : '#198754';
             const textColor = status === 'uncertain' ? '#212529' : '#fff';
             const label = detection.label || status.toUpperCase();

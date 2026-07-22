@@ -143,6 +143,18 @@ ANTI_SPOOF_CROP_MARGIN_RATIO = 0.12
 # 0.85 is conservative and can reject real classmates who are farther from the webcam.
 LIVENESS_THRESHOLD = 0.85
 
+# Multi-frame confirmation (attendance/liveness_gate.py): attendance is
+# marked only when a face's rolling score-window mean passes, not a single
+# frame. Eval on the video test set (2026-07): 40% of replay attacks passed
+# >=1 single frame at 0.85; with this policy (mean>=0.80, min 3 frames,
+# window 20) 0/55 attacks were marked vs 49/55 real videos auto-confirmed.
+LIVENESS_CONFIRM_MIN_FRAMES = 3
+LIVENESS_CONFIRM_MEAN_SCORE = 0.80    # 0.75 marks more borderline reals but let 1/55 attacks through
+LIVENESS_CONFIRM_WINDOW = 20          # ~30 s of history at the 1.5 s auto-scan cadence
+# A face unseen for this long is a new presentation: its track is dropped
+# so nobody inherits another face's score history.
+LIVENESS_TRACK_MAX_GAP_SECONDS = 6.0
+
 # ==============================================================
 # INTERNATIONALIZATION
 # ==============================================================

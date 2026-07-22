@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.conf import settings
 from .models import Session, Attendance
+from .liveness_gate import liveness_gate
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +121,14 @@ def recognize_frame(request, session_id):
             # --------------------------------------------------------------
             verdict, liveness_score = ai_service.check_liveness(frame, face)
 
+            # Every scored frame — spoof or real — feeds this face's
+            # rolling score window; attendance later requires the window
+            # MEAN to pass, not just one frame (see liveness_gate).
+            if verdict in ('real', 'spoof'):
+                confirmed, obs_count, window_mean = liveness_gate.observe(
+                    session_id, face_box, liveness_score,
+                )
+
             if verdict == 'spoof':
                 spoof_count += 1
                 detections.append({
@@ -155,14 +164,14 @@ def recognize_frame(request, session_id):
             )
 
             if match:
-                detections.append({
-                    'bbox': face_box,
-                    'status': 'real',
-                    'label': f"REAL | {match['roll_no']}",
-                    'liveness': liveness_score,
-                    'similarity': match['similarity'],
-                })
                 if match['user_id'] in already_marked:
+                    detections.append({
+                        'bbox': face_box,
+                        'status': 'real',
+                        'label': f"REAL | {match['roll_no']}",
+                        'liveness': liveness_score,
+                        'similarity': match['similarity'],
+                    })
                     recognized.append({
                         'roll_no':   match['roll_no'],
                         'name':      match['name'],
@@ -171,24 +180,66 @@ def recognize_frame(request, session_id):
                         'liveness_score': liveness_score,
                         'status':    'ALREADY_MARKED',
                     })
-                else:
-                    Attendance.objects.create(
-                        session=session,
-                        student_id=match['user_id'],
-                        status='PRESENT',
-                        time_marked=current_local_time(),
-                        confidence=match['similarity'],
-                        marked_by='auto',
+                    continue
+
+                # ----------------------------------------------------------
+                # MULTI-FRAME CONFIRMATION
+                # One passing frame is not proof of liveness — replay
+                # attacks pass occasional frames. Attendance is marked only
+                # once this face's rolling score-window mean also passes
+                # (see liveness_gate module docstring).
+                # ----------------------------------------------------------
+                if not confirmed:
+                    required = liveness_gate.min_frames()
+                    label = (
+                        f"HOLD STILL {obs_count}/{required} | {match['roll_no']}"
+                        if obs_count < required
+                        else f"VERIFYING | {match['roll_no']}"
                     )
-                    already_marked.add(match['user_id'])
+                    detections.append({
+                        'bbox': face_box,
+                        'status': 'confirming',
+                        'label': label,
+                        'liveness': liveness_score,
+                        'similarity': match['similarity'],
+                    })
                     recognized.append({
                         'roll_no':   match['roll_no'],
                         'name':      match['name'],
                         'similarity': match['similarity'],
                         'liveness':  liveness_score,
                         'liveness_score': liveness_score,
-                        'status':    'MARKED',
+                        'status':    'CONFIRMING',
+                        'frames_observed': obs_count,
+                        'frames_required': required,
+                        'window_mean': window_mean,
                     })
+                    continue
+
+                detections.append({
+                    'bbox': face_box,
+                    'status': 'real',
+                    'label': f"REAL | {match['roll_no']}",
+                    'liveness': liveness_score,
+                    'similarity': match['similarity'],
+                })
+                Attendance.objects.create(
+                    session=session,
+                    student_id=match['user_id'],
+                    status='PRESENT',
+                    time_marked=current_local_time(),
+                    confidence=match['similarity'],
+                    marked_by='auto',
+                )
+                already_marked.add(match['user_id'])
+                recognized.append({
+                    'roll_no':   match['roll_no'],
+                    'name':      match['name'],
+                    'similarity': match['similarity'],
+                    'liveness':  liveness_score,
+                    'liveness_score': liveness_score,
+                    'status':    'MARKED',
+                })
             else:
                 detections.append({
                     'bbox': face_box,
